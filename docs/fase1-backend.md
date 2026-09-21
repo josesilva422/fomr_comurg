@@ -51,6 +51,7 @@ Meses de experiência são gravados como o **primeiro dia do mês** (`2020-01-01
 - [ ] Riscos do plano Free (R1 a R4 em `decisoes-pendentes.md`): destino do backup definido, keep-alive agendado e estimativa de candidatos confirmada
 - [ ] Rodar `supabase/tests/fase1_seguranca.test.sql` (deve terminar com "TODOS PASSARAM")
 - [ ] Nenhum usuário/candidato de teste no banco (`select count(*) from publico.candidatos;` = 0)
+- [ ] Bucket `documentos` vazio: **restam 10 arquivos de teste (~300 bytes cada)** dos testes das etapas 3 e 4. O SQL bloqueia apagar objetos do Storage; apagar pelo painel (Storage → documentos → selecionar tudo → Delete) ou pela API
 
 ## Limites do plano gratuito (verificados em supabase.com/pricing em 21/09/2026)
 
