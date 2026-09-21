@@ -62,7 +62,7 @@ A plataforma deve:
 - **Worker de extração e motor de regras:** Python 3.12, FastAPI, Pydantic v2, pytest.
 - **Fila:** Supabase Queues (pgmq) ou tabela `jobs` com polling; o worker processa fora do request.
 - **IA de extração:** API da Anthropic com PDF/imagem como entrada e saída estruturada validada por schema Pydantic. O nome do modelo vem de variável de ambiente (`EXTRACTION_MODEL`), sem hardcode.
-- **Pix:** o edital fixa a **chave CNPJ da COMURG** (chave estática, item 4.9) e exige **upload do comprovante** (4.9.3). Portanto não há cobrança dinâmica por candidato: a verificação é feita sobre o comprovante (extração por IA + regras determinísticas) e conferida pelo financeiro contra o extrato bancário, usando o E2E ID como chave.
+- **Pix:** o edital fixa uma **chave estática da COMURG** (item 4.9; hoje o e-mail `pss2026comurg@comurg.com.br`) e exige **upload do comprovante** (4.9.3). Portanto não há cobrança dinâmica por candidato: a verificação é feita sobre o comprovante (extração por IA + regras determinísticas) e conferida pelo financeiro contra o extrato bancário, usando o E2E ID como chave.
 - **Testes:** pytest (motor), Vitest/Playwright (frontend).
 
 ## 5. Estrutura sugerida do repositório
@@ -158,7 +158,7 @@ Tipos de documento (enum): `identidade`, `cpf`, `diploma_graduacao`, `diploma_po
 
 ### 8.1.1 Pagamento via Pix (4.9 a 4.9.5)
 
-- Chave: **CNPJ nº 00.418.160/0001-55 (COMURG)**.
+- Chave: **pss2026comurg@comurg.com.br** (e-mail), informada pelo responsável em 21/09/2026. **Atenção:** a minuta v2 do edital (item 4.9) ainda cita a chave CNPJ nº 00.418.160/0001-55; o edital precisa ser ajustado. A chave fica em `interno.configuracao` (`pix_chave`), não no código.
 - O Pix deve ser feito **pelo próprio candidato**, de conta de sua titularidade, com nome completo e CPF. **Pagamento por terceiros não é aceito** (4.9.1).
 - O comprovante deve conter: nome completo e CPF do pagador, data e horário, valor e **código E2E** (4.9.2).
 - Anexo **obrigatório** ao concluir a inscrição, em PDF, JPG ou PNG legível (4.9.3). Sem comprovante, o backend não conclui a inscrição (exceto quando houver pedido de isenção em análise).
@@ -169,7 +169,7 @@ Verificações determinísticas a implementar sobre os dados extraídos do compr
 
 1. Valor igual a R$ 100,00.
 2. Data/hora dentro da janela de inscrições (fuso `America/Sao_Paulo`; o E2E embute data/hora em UTC, o que permite conferência cruzada; confirmar o formato no manual do BCB).
-3. Favorecido/chave = CNPJ da COMURG.
+3. Favorecido/chave = a chave Pix oficial configurada (`pix_chave`).
 4. Nome do pagador compatível com o do candidato (normalizar acentos, caixa e abreviações; se não bater com certeza, vai para revisão humana).
 5. CPF do pagador: comprovantes de Pix **costumam mascarar o CPF** (só alguns dígitos visíveis). Comparar apenas os dígitos visíveis e marcar como "verificação parcial".
 6. **E2E único no sistema:** o mesmo comprovante em duas inscrições gera alerta de fraude.

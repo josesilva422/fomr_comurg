@@ -494,14 +494,14 @@ summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px}
         <header class="step-head">
           <p class="eyebrow">Etapa 6 de 7</p>
           <h2 id="h-6" tabindex="-1">Pagamento da taxa (Pix)</h2>
-          <p class="lead">A taxa de inscrição é de <b>R$ 100,00</b>, paga por Pix para a chave CNPJ da COMURG. Depois de pagar, anexe o comprovante.</p>
+          <p class="lead">A taxa de inscrição é de <b>R$ 100,00</b>, paga por Pix para a chave e-mail da COMURG. Depois de pagar, anexe o comprovante.</p>
         </header>
         <div class="alert alert-ok" id="isencaoBanner" hidden><i data-icon="info"></i><p>Você pediu isenção. Enquanto o pedido estiver em análise, o comprovante é <b>opcional</b>. Sua inscrição ficará com o status <b>aguardando isenção</b>.</p></div>
 
         <div class="pix">
           <div>
-            <small>Chave Pix (CNPJ)</small>
-            <div class="pix-key" id="pixKey">00.418.160/0001-55</div>
+            <small>Chave Pix (e-mail)</small>
+            <div class="pix-key" id="pixKey" style="font-size:22px">pss2026comurg@comurg.com.br</div>
             <small style="margin-top:6px">Favorecido: COMURG — Companhia de Urbanização de Goiânia</small>
             <button type="button" class="btn btn-sm" id="btnCopy" style="margin-top:12px"><i data-icon="copy" data-size="18"></i> Copiar chave</button>
           </div>
@@ -522,7 +522,7 @@ summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px}
         <h3 style="margin-top:22px">Como pagar</h3>
         <ol class="steps-list">
           <li>No aplicativo do seu banco, escolha <b>Pix › Pagar com chave</b>.</li>
-          <li>Cole a chave (CNPJ) e confira o favorecido e o valor de R$ 100,00.</li>
+          <li>Cole a chave e confira o favorecido e o valor de R$ 100,00.</li>
           <li>Pague de uma conta em seu nome e guarde o comprovante (PDF ou imagem).</li>
         </ol>
 
@@ -544,7 +544,7 @@ summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px}
         <header class="step-head">
           <p class="eyebrow">Etapa 7 de 7</p>
           <h2 id="h-7" tabindex="-1">Revisão e envio</h2>
-          <p class="lead">Confira as informações. Você pode alterar sua inscrição até <b>07/10/2026</b>. Depois do encerramento, não é possível incluir nem trocar documentos (itens 5.5.3 e 9.4).</p>
+          <p class="lead">Confira tudo com atenção. Ao clicar em <b>Enviar solicitação</b>, a inscrição é <b>definitiva</b>: não poderá mais ser alterada e só a Comissão Organizadora terá acesso às informações enviadas.</p>
         </header>
         <div id="pendencias"></div>
         <div id="reviewBody"></div>
@@ -569,7 +569,7 @@ summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px}
 
     <section class="card success" id="success" hidden aria-live="polite">
       <div class="ok"><i data-icon="check" data-size="34"></i></div>
-      <h2>Inscrição enviada</h2>
+      <h2>Solicitação enviada</h2>
       <p class="lead" style="margin:8px auto 0">Guarde o número de protocolo. Você receberá os avisos no e-mail informado.</p>
       <div class="protocolo" id="protocolo">PSS-2026-000000</div>
       <p style="color:var(--muted);font-size:14px">Situação: <b>recebida, aguardando homologação</b></p>
@@ -616,13 +616,13 @@ const svg = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" 
 
 /* ---------- dados do edital (fonte: CLAUDE.md, seção 8) ---------- */
 const DATAS = { abertura: '2026-09-24', encerramento: '2026-10-07', publicacao: '2026-09-24' };
-const PIX_KEY_DIGITS = '00418160000155';
+const PIX_KEY = 'pss2026comurg@comurg.com.br';
 const MAX_BYTES = 10 * 1024 * 1024;
 
 const GRUPOS = {
-  A: { nome: 'Grupo A', desc: 'Obras, engenharia e contratos' },
-  B: { nome: 'Grupo B', desc: 'Projetos, PMO e governança' },
-  C: { nome: 'Grupo C', desc: 'Licitações, contratos públicos e conformidade' }
+  A: { nome: 'Grupo A', desc: 'Analista de Projetos e Obras' },
+  B: { nome: 'Grupo B', desc: 'Governança de Projetos' },
+  C: { nome: 'Grupo C', desc: 'Analista de Licitações e Conformidade Processual' }
 };
 const NIVEIS = {
   junior: { nome: 'Júnior', minAnos: 1 },
@@ -1104,7 +1104,7 @@ function goTo(n, focusHead = true) {
   if (n === 4) updateExp();
   if (n === 7) renderReview();
   $('#btnBack').style.visibility = n === 1 ? 'hidden' : 'visible';
-  $('#btnNext').textContent = n === 7 ? 'Enviar inscrição' : 'Continuar →';
+  $('#btnNext').textContent = n === 7 ? 'Enviar solicitação' : 'Continuar →';
   renderRail();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (focusHead) setTimeout(() => $(`#h-${n}`).focus({ preventScroll: true }), 50);
@@ -1199,9 +1199,9 @@ $('#btnDraft').onclick = () => toast('Simulação: o protótipo não salva nada.
 $('#btnBackForm').onclick = () => goTo(7);
 $('#btnReset').onclick = () => location.reload();
 $('#btnCopy').onclick = async () => {
-  try { await navigator.clipboard.writeText(PIX_KEY_DIGITS); }
-  catch { const t = document.createElement('textarea'); t.value = PIX_KEY_DIGITS; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
-  toast('Chave Pix copiada (somente números).');
+  try { await navigator.clipboard.writeText(PIX_KEY); }
+  catch { const t = document.createElement('textarea'); t.value = PIX_KEY; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+  toast('Chave Pix copiada.');
 };
 
 /* ---------- dados fictícios ---------- */

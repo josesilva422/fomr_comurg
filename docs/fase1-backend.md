@@ -18,12 +18,13 @@ Os projetos `gestao_ativos_comurg` e `pesquisa_satisfacao_comurg` (mesma organiz
 
 - **Dois schemas.** `publico` (candidato lê e escreve a própria inscrição) e `interno` (configuração e auditoria). `interno` **não** é exposto na API e não tem nenhum GRANT para `anon`/`authenticated`.
 - **RLS em todas as tabelas**, e permissões por coluna: o candidato **não consegue** alterar `status`, `submetida_em`, `declaracoes_aceitas_em`, `user_id` nem `email`.
+- **Envio definitivo** (D5): só a inscrição em `rascunho` é editável. Depois de "Enviar solicitação" (`submetida` ou `aguardando_isencao`) o candidato **apenas lê**: não altera cadastro, vínculos, documentos nem envia arquivos; correções só por pedido à Comissão (P3).
 - **Trava de prazo no banco** (itens 5.5.3 e 9.4): fora do período, qualquer inclusão, alteração ou remoção feita por conta de candidato é recusada, inclusive envio de arquivo. O candidato continua *lendo* o que enviou.
 - **Documentos append-only.** Não se apaga nem sobrescreve: "remover" marca `ativo = false` (o servidor grava `removido_em`); não dá para reativar. No Storage o candidato só envia e lê, e só na própria pasta `{inscricao_id}/...`.
 - **Auditoria imutável** (`interno.auditoria`): registra ator, ação, antes/depois e IP de cada mudança; UPDATE, DELETE e TRUNCATE são bloqueados.
 - **Regras de envio no servidor**: `publico.verificar_inscricao()` devolve as pendências (código, mensagem, etapa do formulário) e `publico.submeter_inscricao()` só conclui se não houver nenhuma. O frontend apenas exibe.
 
-Testes: `supabase/tests/fase1_seguranca.test.sql` (89 verificações, roda numa transação que é desfeita; **todas passaram** em 21/09/2026).
+Testes: `supabase/tests/fase1_seguranca.test.sql` (113 verificações, roda numa transação que é desfeita; **todas passaram** em 21/09/2026).
 
 ## Fluxo do candidato (para o frontend)
 
@@ -31,7 +32,7 @@ Testes: `supabase/tests/fase1_seguranca.test.sql` (89 verificações, roda numa 
 2. `insert` em `publico.candidatos` (nome, cpf só com dígitos, telefone só com dígitos, nascimento, nacionalidade). O e-mail vem da conta; a inscrição (`publico.inscricoes`) é criada automaticamente.
 3. `update` em `publico.inscricoes` conforme o candidato avança; `insert`/`update`/`delete` em `titulos_declarados`, `cursos_declarados`, `vinculos_declarados`.
 4. Upload do arquivo em `documentos/{inscricao_id}/{tipo}/{uuid}.{ext}` (Storage) e, em seguida, `insert` em `publico.documentos` com o caminho, o SHA-256 (calculado no navegador) e o tamanho.
-5. `rpc('verificar_inscricao')` mostra as pendências; `rpc('aceitar_declaracoes')`; `rpc('submeter_inscricao')`.
+5. `rpc('dados_pagamento')` traz a chave Pix e o valor da taxa. `rpc('verificar_inscricao')` mostra as pendências; `rpc('aceitar_declaracoes')`; `rpc('submeter_inscricao')` sela a inscrição (irreversível para o candidato).
 
 Meses de experiência são gravados como o **primeiro dia do mês** (`2020-01-01`).
 
@@ -67,4 +68,4 @@ Ficam para as próximas fases: `pagamentos`, `isencoes` (decisão), `verificacoe
 
 Fonte da verdade: `supabase/migrations/*.sql`; reversão de cada uma em `supabase/rollback/*.down.sql` (só para desenvolvimento).
 Foram aplicadas ao projeto pelo assistente do Supabase, então os números de versão registrados no banco diferem dos nomes dos arquivos; o conteúdo é o mesmo. Antes de usar `supabase db push`, alinhar o histórico (`supabase migration repair`).
-O seed `cursos_aceitos` (339 linhas) é gerado por `supabase/seed/gerar_cursos_aceitos.py` a partir do CLAUDE.md, **e precisa ser conferido contra o edital**.
+O seed `cursos_aceitos` (339 linhas) é gerado por `supabase/seed/gerar_cursos_aceitos.py` e foi **conferido contra os itens 3.2 a 3.4 do edital** (`docs/Minuta_Edital_PSS_COMURG_2026_v2.docx`): as 9 listas são idênticas.

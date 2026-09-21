@@ -1,4 +1,4 @@
--- Fase 1 · Testes de segurança e regras de negócio (RLS, trava de prazo, envio, auditoria, storage).
+-- Fase 1 · Testes de segurança e regras de negócio (RLS, envio definitivo, trava de prazo, auditoria, storage, Pix).
 -- Roda inteiro dentro de UMA transação que é desfeita no final: não deixa nenhum dado.
 -- O resultado aparece como uma exceção "RESULTADO_DOS_TESTES: N verificações, M falhas".
 -- Uso local:  psql "$DATABASE_URL" -f supabase/tests/fase1_seguranca.test.sql
@@ -7,7 +7,8 @@ do $teste$
 declare
   ua constant uuid := 'a0000000-0000-0000-0000-00000000000a';
   ub constant uuid := 'b0000000-0000-0000-0000-00000000000b';
-  ia uuid; ib uuid; va uuid; vb uuid;
+  uc constant uuid := 'c0000000-0000-0000-0000-00000000000c';
+  ia uuid; ib uuid; ic uuid; va uuid; vb uuid; vc uuid;
   t text[] := '{}';
   n integer; total integer; nf integer;
   p text; st publico.status_inscricao;
@@ -84,7 +85,8 @@ begin
   update interno.configuracao set valor = to_jsonb((now() + interval '7 days')::text) where chave = 'inscricoes_encerramento';
   insert into auth.users (id, aud, role, email) values
     (ua, 'authenticated', 'authenticated', 'a@teste.local'),
-    (ub, 'authenticated', 'authenticated', 'b@teste.local');
+    (ub, 'authenticated', 'authenticated', 'b@teste.local'),
+    (uc, 'authenticated', 'authenticated', 'c@teste.local');
   select count(*) into n from publico.cursos_aceitos;
   t := t || pg_temp.igual(n::text, '339', 'seed: total de cursos aceitos');
 
@@ -96,12 +98,17 @@ begin
   t := t || pg_temp.falha('select * from publico.verificar_inscricao()', 'anon executa verificar', 'permission denied');
   t := t || pg_temp.falha('select publico.submeter_inscricao()', 'anon executa submeter', 'permission denied');
   t := t || pg_temp.falha('select * from interno.auditoria', 'anon lê auditoria', 'permission denied');
+  t := t || pg_temp.falha('select * from publico.dados_pagamento()', 'anon lê dados do Pix', 'permission denied');
   t := t || pg_temp.passa('select * from publico.periodo_inscricoes()', 'anon consulta o período');
 
   ---------------------------------------------------------------- candidato A: cadastro
   perform pg_temp.como(ua, 'a@teste.local');
   t := t || pg_temp.falha('select * from interno.auditoria', 'candidato lê auditoria', 'permission denied');
   t := t || pg_temp.falha('select * from interno.configuracao', 'candidato lê configuração', 'permission denied');
+  select pix_chave into p from publico.dados_pagamento();
+  t := t || pg_temp.igual(p, 'pss2026comurg@comurg.com.br', 'candidato lê a chave Pix pela função');
+  select valor_centavos::text into p from publico.dados_pagamento();
+  t := t || pg_temp.igual(p, '10000', 'taxa de R$ 100,00');
   t := t || pg_temp.falha('update interno.configuracao set valor = ''"2030-01-01T00:00:00Z"''', 'candidato altera configuração', 'permission denied');
   t := t || pg_temp.falha(format('insert into publico.candidatos (user_id, nome, cpf, telefone, data_nascimento, nacionalidade) values (%L, ''Maria Teste'', ''11111111111'', ''62999990000'', ''1988-03-14'', ''brasileiro_nato'')', ua), 'CPF com dígitos repetidos', 'violates check');
   t := t || pg_temp.falha(format('insert into publico.candidatos (user_id, nome, cpf, telefone, data_nascimento, nacionalidade) values (%L, ''Maria Teste'', ''52998224726'', ''62999990000'', ''1988-03-14'', ''brasileiro_nato'')', ua), 'CPF com dígito verificador errado', 'violates check');
@@ -215,7 +222,28 @@ begin
   t := t || pg_temp.igual(st::text, 'submetida', 'envio da inscrição completa');
   select (submetida_em is not null)::text into p from publico.inscricoes;
   t := t || pg_temp.igual(p, 'true', 'submetida_em preenchido pelo servidor');
-  t := t || pg_temp.passa('select publico.submeter_inscricao()', 'reenviar antes do prazo continua permitido');
+  -- ENVIO DEFINITIVO: depois de enviada, o candidato só lê
+  t := t || pg_temp.falha('select publico.submeter_inscricao()', 'reenviar depois de enviada', 'inscricao_indisponivel');
+  t := t || pg_temp.falha('select publico.aceitar_declaracoes()', 'aceitar declarações depois de enviada', 'inscricao_indisponivel');
+  t := t || pg_temp.passa('update publico.inscricoes set grupo = ''C''', 'A tenta alterar inscrição enviada (RLS filtra: 0 linhas)');
+  select grupo::text into p from publico.inscricoes;
+  t := t || pg_temp.igual(p, 'B', 'inscrição enviada não foi alterada');
+  t := t || pg_temp.passa('update publico.candidatos set telefone = ''62900001111''', 'A tenta alterar o cadastro depois de enviar (RLS filtra: 0 linhas)');
+  select telefone into p from publico.candidatos;
+  t := t || pg_temp.igual(p, '62999990000', 'cadastro enviado não foi alterado');
+  t := t || pg_temp.falha(format('insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao) values (%L, ''privado'', ''Empresa Z'', ''Analista'', ''2020-01-01'', ''2021-01-01'', false, ''Vínculo incluído depois'')', ia), 'incluir vínculo depois de enviada', 'row-level security');
+  t := t || pg_temp.falha(format('insert into publico.documentos (inscricao_id, tipo, storage_path, nome_original, sha256, mime, tamanho_bytes) values (%L, ''cpf'', %L, ''cpf2.pdf'', repeat(''e'', 64), ''application/pdf'', 1000)', ia, ia || '/cpf/' || gen_random_uuid() || '.pdf'), 'incluir documento depois de enviada', 'row-level security');
+  t := t || pg_temp.passa('update publico.documentos set ativo = false', 'A tenta remover documentos depois de enviar (RLS filtra: 0 linhas)');
+  select count(*) into n from publico.documentos where ativo;
+  t := t || pg_temp.igual((n >= 6)::text, 'true', 'documentos enviados continuam ativos');
+  t := t || pg_temp.passa('delete from publico.vinculos_declarados', 'A tenta apagar vínculos depois de enviar (RLS filtra: 0 linhas)');
+  select count(*) into n from publico.vinculos_declarados;
+  t := t || pg_temp.igual((n >= 2)::text, 'true', 'vínculos enviados continuam existindo');
+  t := t || pg_temp.falha(format('insert into storage.objects (bucket_id, name) values (''documentos'', %L)', ia || '/identidade/depois.pdf'), 'enviar arquivo depois de enviada', 'row-level security');
+  select status::text into p from publico.inscricoes;
+  t := t || pg_temp.igual(p, 'submetida', 'status da inscrição enviada');
+  select count(*) into n from publico.documentos;
+  t := t || pg_temp.igual((n > 0)::text, 'true', 'candidato continua LENDO a inscrição enviada');
 
   ---------------------------------------------------------------- B: pedido de isenção (sem Pix)
   perform pg_temp.como(ub, 'b@teste.local');
@@ -229,21 +257,39 @@ begin
     values (ib, 'requerimento_isencao', ib || '/requerimento_isencao/' || gen_random_uuid() || '.pdf', 'req.pdf', repeat('f', 64), 'application/pdf', 1000);
   select publico.submeter_inscricao() into st;
   t := t || pg_temp.igual(st::text, 'aguardando_isencao', 'com isenção o status é aguardando_isencao');
+  t := t || pg_temp.passa('update publico.inscricoes set justificativa_isencao = ''alterada depois''', 'B tenta alterar depois de enviar (RLS filtra: 0 linhas)');
+  select justificativa_isencao into p from publico.inscricoes;
+  t := t || pg_temp.igual(p, 'Situação de vulnerabilidade comprovada.', 'pedido de isenção enviado não foi alterado');
+
+  -- C: candidata ainda em rascunho (usada para testar a trava de prazo)
+  perform pg_temp.como(uc, 'c@teste.local');
+  t := t || pg_temp.passa(format('insert into publico.candidatos (user_id, nome, cpf, telefone, data_nascimento, nacionalidade) values (%L, ''Carla Teste Lima'', ''11144477735'', ''62977770000'', ''1992-07-01'', ''brasileiro_nato'')', uc), 'C cria candidato');
+  select id into ic from publico.inscricoes;
+  insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao)
+    values (ic, 'privado', 'Empresa C', 'Analista', '2020-01-01', '2021-01-01', false, 'Atividades do vínculo de C') returning id into vc;
+  insert into publico.documentos (inscricao_id, tipo, storage_path, nome_original, sha256, mime, tamanho_bytes)
+    values (ic, 'identidade', ic || '/identidade/' || gen_random_uuid() || '.pdf', 'rg-c.pdf', repeat('7', 64), 'application/pdf', 1000);
+  t := t || pg_temp.passa('update publico.candidatos set telefone = ''62977771111''', 'C (rascunho) altera o cadastro');
 
   ---------------------------------------------------------------- trava de prazo (servidor)
   perform pg_temp.admin();
   update interno.configuracao set valor = to_jsonb((now() - interval '1 hour')::text) where chave = 'inscricoes_encerramento';
-  perform pg_temp.como(ua, 'a@teste.local');
-  t := t || pg_temp.falha(format('update publico.inscricoes set grupo = ''B'' where id = %L', ia), 'alterar inscrição após o encerramento', 'inscricoes_fora_do_periodo');
-  t := t || pg_temp.falha(format('insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao) values (%L, ''privado'', ''Empresa Z'', ''Analista'', ''2020-01-01'', ''2021-01-01'', false, ''Vínculo incluído tarde'')', ia), 'incluir vínculo após o encerramento', 'inscricoes_fora_do_periodo');
-  t := t || pg_temp.falha(format('insert into publico.documentos (inscricao_id, tipo, storage_path, nome_original, sha256, mime, tamanho_bytes) values (%L, ''cpf'', %L, ''cpf.pdf'', repeat(''e'', 64), ''application/pdf'', 1000)', ia, ia || '/cpf/' || gen_random_uuid() || '.pdf'), 'incluir documento após o encerramento', 'inscricoes_fora_do_periodo');
+  perform pg_temp.como(uc, 'c@teste.local');
+  t := t || pg_temp.falha(format('update publico.inscricoes set grupo = ''B'' where id = %L', ic), 'alterar inscrição após o encerramento', 'inscricoes_fora_do_periodo');
+  t := t || pg_temp.falha(format('insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao) values (%L, ''privado'', ''Empresa Z'', ''Analista'', ''2020-01-01'', ''2021-01-01'', false, ''Vínculo incluído tarde'')', ic), 'incluir vínculo após o encerramento', 'inscricoes_fora_do_periodo');
+  t := t || pg_temp.falha(format('update publico.vinculos_declarados set cargo = ''Gerente'' where id = %L', vc), 'alterar vínculo após o encerramento', 'inscricoes_fora_do_periodo');
+  t := t || pg_temp.falha(format('delete from publico.vinculos_declarados where id = %L', vc), 'apagar vínculo após o encerramento', 'inscricoes_fora_do_periodo');
+  t := t || pg_temp.falha(format('insert into publico.documentos (inscricao_id, tipo, storage_path, nome_original, sha256, mime, tamanho_bytes) values (%L, ''cpf'', %L, ''cpf.pdf'', repeat(''e'', 64), ''application/pdf'', 1000)', ic, ic || '/cpf/' || gen_random_uuid() || '.pdf'), 'incluir documento após o encerramento', 'inscricoes_fora_do_periodo');
   t := t || pg_temp.falha('update publico.documentos set ativo = false where tipo = ''identidade''', 'remover documento após o encerramento', 'inscricoes_fora_do_periodo');
   t := t || pg_temp.falha('update publico.candidatos set telefone = ''62911112222''', 'alterar cadastro após o encerramento', 'inscricoes_fora_do_periodo');
   t := t || pg_temp.falha('select publico.aceitar_declaracoes()', 'aceitar declarações após o encerramento', 'inscricoes_fora_do_periodo');
   t := t || pg_temp.falha('select publico.submeter_inscricao()', 'enviar após o encerramento', 'pendência');
-  t := t || pg_temp.falha(format('insert into storage.objects (bucket_id, name) values (''documentos'', %L)', ia || '/identidade/tarde.pdf'), 'enviar arquivo após o encerramento', 'row-level security');
+  t := t || pg_temp.falha(format('insert into storage.objects (bucket_id, name) values (''documentos'', %L)', ic || '/identidade/tarde.pdf'), 'enviar arquivo após o encerramento', 'row-level security');
   select count(*) into n from publico.documentos;
-  t := t || pg_temp.igual((n > 0)::text, 'true', 'depois do prazo o candidato ainda LÊ os próprios documentos');
+  t := t || pg_temp.igual((n > 0)::text, 'true', 'depois do prazo a candidata em rascunho ainda LÊ os próprios documentos');
+  perform pg_temp.como(ua, 'a@teste.local');
+  select count(*) into n from publico.documentos;
+  t := t || pg_temp.igual((n > 0)::text, 'true', 'depois do prazo o candidato com inscrição enviada ainda LÊ os documentos');
   perform pg_temp.admin();
   t := t || pg_temp.passa(format('update publico.inscricoes set updated_at = now() where id = %L', ia), 'serviço interno (sem JWT) não é bloqueado pela trava');
 
@@ -251,7 +297,7 @@ begin
   select count(*) into n from interno.auditoria where ator_id = ua and entidade = 'publico.vinculos_declarados';
   t := t || pg_temp.igual((n > 0)::text, 'true', 'auditoria registra as ações de A com o ator');
   select count(*) into n from interno.auditoria where entidade = 'publico.candidatos' and acao = 'INSERT';
-  t := t || pg_temp.igual(n::text, '2', 'auditoria dos dois cadastros');
+  t := t || pg_temp.igual(n::text, '3', 'auditoria dos três cadastros');
   t := t || pg_temp.falha('update interno.auditoria set acao = ''x''', 'alterar auditoria', 'append-only');
   t := t || pg_temp.falha('delete from interno.auditoria', 'apagar auditoria', 'append-only');
   t := t || pg_temp.falha('truncate interno.auditoria', 'truncar auditoria', 'append-only');

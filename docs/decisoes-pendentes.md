@@ -10,6 +10,19 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | D2 | Custo: **Supabase gratuito por ora** (US$ 0) | Responsável, 21/09/2026 | ver `fase1-backend.md` (limites e quando migrar para Pro) |
 | D3 | Foco atual: **formulário e cadastro**; demais módulos depois | Responsável, 21/09/2026 | escopo da Fase 1 |
 | D4 | Identificação do candidato: **código por e-mail, sem senha** (proposta do assistente, aceita por "seguir como você deseja") | 21/09/2026 | Auth OTP; **exige SMTP próprio** (ver abaixo) |
+| D5 | **Envio definitivo**: ao clicar em "Enviar solicitação" a inscrição fica selada; o candidato não altera nem apaga nada, apenas consulta (direito de acesso, LGPD art. 18); só a Comissão terá acesso, com auditoria. Antes do envio o candidato trabalha em **rascunho** e pode voltar depois. | Responsável, 21/09/2026 | `minha_inscricao_editavel_id()` (só `rascunho`), política de `candidatos`; resolve N4 |
+| D6 | **Chave Pix da taxa: `pss2026comurg@comurg.com.br`** (e-mail) | Responsável, 21/09/2026 | `interno.configuracao` + `publico.dados_pagamento()`; **contradiz a minuta v2, item 4.9 (chave CNPJ)**, ver P2 |
+| D7 | Nomes oficiais dos grupos: A "Analista de Projetos e Obras", B "Governança de Projetos", C "Analista de Licitações e Conformidade Processual" (edital, itens 3.2 a 3.4) | Lidos do edital | protótipo e app; resolve N6 |
+| D8 | Lista de graduações do seed conferida **programaticamente contra o edital** (9 listas, 339 linhas, idênticas) | 21/09/2026 | `supabase/seed/gerar_cursos_aceitos.py` |
+
+## Pendências novas (21/09/2026)
+
+| # | Pergunta | Detalhe |
+|---|---|---|
+| P1 | **Critérios da isenção da taxa.** O edital **não define critérios objetivos**: 4.10 (requerimento fundamentado + documentação comprobatória, decisão motivada), 4.10.1 (sem documentação = indeferimento) e 4.10.3 (a COMURG **não** está obrigada às hipóteses da Lei 12.799/2013 e decide por razoabilidade e isonomia). | Sugestão: publicar uma lista fechada de situações aceitas (ex.: inscrição no CadÚnico, desemprego comprovado etc.) para evitar decisões arbitrárias e recursos. Decisão da Comissão/jurídico. |
+| P2 | **Edital, item 4.9, ainda cita a chave CNPJ.** A versão anterior da minuta dizia "chave indicada na plataforma de inscrição". | Ajustar o edital para a chave nova (ou voltar ao texto "indicada na plataforma", que dispensa retificar se a chave mudar). Também revisar 4.9.4 (verificação da chave). |
+| P3 | **Correção de erros depois do envio definitivo** (CPF digitado errado, arquivo trocado). Hoje ninguém corrige. | Definir um canal formal via Comissão (pedido justificado, com registro), coerente com 5.5.3. |
+| P4 | Item 4.10 diz que o pedido de isenção é feito "exclusivamente pelo canal oficial de **e-mail**", mas o sistema recebe o pedido na plataforma. | Ajustar o edital (já era a pendência 3 do CLAUDE.md). |
 
 ## Novas, surgidas ao construir a Fase 1
 
@@ -18,9 +31,7 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | N1 | **Horário exato** de abertura e encerramento (o edital só traz datas) | `interno.configuracao` (hoje 24/09 00:00 e 07/10 23:59:59, horário de Brasília) | Confirmar com a Comissão |
 | N2 | **SMTP para e-mails de login**: qual conta/domínio envia? (Microsoft 365/Google da COMURG ou um serviço como Resend, com DNS do domínio) | Sem isso nenhum candidato recebe o código | Definir antes de 24/09 |
 | N3 | **Limite de tamanho por arquivo** (hoje 10 MB no protótipo, no banco e no bucket) | Storage e UX | Manter 10 MB; PDFs escaneados costumam caber |
-| N4 | **Edição depois de enviar**: hoje o candidato pode alterar até o encerramento e reenviar; a inscrição continua "submetida" mesmo que ele apague um documento obrigatório | Regra de negócio | Alternativa: voltar a "rascunho" a cada alteração e exigir novo envio |
 | N5 | **Retenção e descarte** dos dados e da auditoria (LGPD) | A auditoria hoje é imutável; descarte exigirá procedimento próprio | Definir com o jurídico/DPO |
-| N6 | **Nomes oficiais dos Grupos A, B e C** (o protótipo usa descrições derivadas das áreas) | Textos do formulário | Copiar do edital |
 | N7 | **Passar para o plano Pro** e quando | Backups, pausa por inatividade, 1 GB de arquivos | Antes de abrir inscrições reais |
 
 ## Herdadas do CLAUDE.md (seção 11)
