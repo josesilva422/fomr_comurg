@@ -38,10 +38,19 @@ Meses de experiência são gravados como o **primeiro dia do mês** (`2020-01-01
 
 ## O que ainda precisa ser feito no painel do Supabase (não dá para automatizar daqui)
 
-1. **Expor o schema `publico` na API.** Settings → Data API → *Exposed schemas* → adicionar `publico` (manter `graphql_public`; **não** adicionar `interno`). Hoje a API responde `Invalid schema: publico`.
-2. **E-mail de login.** O envio embutido do Supabase só entrega para membros da organização (candidatos receberiam "Email address not authorized"). É obrigatório configurar **SMTP próprio** (Authentication → Emails → SMTP Settings) e trocar o modelo do e-mail de "Magic Link" para mostrar o código `{{ .Token }}`.
+1. ~~Expor o schema `publico` na API~~ **Feito por migração** (`20260921210100_expor_schema_publico.sql`, via `alter role authenticator set pgrst.db_schemas`). Conferido: `publico` responde, `interno` é recusado e visitante sem login recebe "permission denied". Se alguém mexer em *Settings → Data API → Exposed schemas* no painel, conferir de novo que `interno` **não** foi adicionado.
+2. **E-mail de login (bloqueia as inscrições em 24/09).** O envio embutido do Supabase só entrega para membros da organização (candidatos receberiam "Email address not authorized"). É obrigatório configurar **SMTP próprio** (Authentication → Emails → SMTP Settings) **e** alterar os modelos de e-mail **"Magic Link"** e **"Confirm signup"** para mostrar o código: acrescentar `{{ .Token }}` ao texto. O app digita o código; o link `/auth/confirm?token_hash={{ .TokenHash }}&type=email` também funciona como alternativa.
 3. Authentication → *Sign In / Providers*: manter e-mail habilitado, **desativar** login anônimo, e conferir o limite de envios por hora.
 4. Antes de abrir para candidatos reais: **plano Pro** (backups, sem pausa por inatividade). Ver abaixo.
+
+## Checklist de abertura (24/09)
+
+- [ ] SMTP próprio configurado e modelos de e-mail com `{{ .Token }}` (item 2 acima)
+- [ ] `select chave, valor from interno.configuracao;` com abertura `2026-09-24T00:00:00-03:00` e encerramento `2026-10-07T23:59:59-03:00` (horários a confirmar com a Comissão, N1)
+- [ ] Chave Pix correta em `interno.configuracao` (`pix_chave`)
+- [ ] Plano Pro (ou decisão consciente de seguir no gratuito)
+- [ ] Rodar `supabase/tests/fase1_seguranca.test.sql` (deve terminar com "TODOS PASSARAM")
+- [ ] Nenhum usuário/candidato de teste no banco (`select count(*) from publico.candidatos;` = 0)
 
 ## Limites do plano gratuito (verificados em supabase.com/pricing em 21/09/2026)
 
