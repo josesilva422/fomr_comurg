@@ -7,7 +7,7 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | # | Decisão | Quem / quando | Onde está refletida |
 |---|---|---|---|
 | D1 | **O candidato escolhe o Grupo** (e o Nível) | Responsável, 21/09/2026 | `inscricoes.grupo/nivel`, `cursos_aceitos` |
-| D2 | Custo: **Supabase gratuito por ora** (US$ 0) | Responsável, 21/09/2026 | ver `fase1-backend.md` (limites e quando migrar para Pro) |
+| D2 | **Plano Free do Supabase, sem Pro** (US$ 0). Decisão firme: não haverá plano Pro. | Responsável, 21/09/2026 | Riscos assumidos e mitigações em R1 a R4 (abaixo) |
 | D3 | Foco atual: **formulário e cadastro**; demais módulos depois | Responsável, 21/09/2026 | escopo da Fase 1 |
 | D4 | Identificação do candidato: **código por e-mail, sem senha** (proposta do assistente, aceita por "seguir como você deseja") | 21/09/2026 | Auth OTP; **exige SMTP próprio** (ver abaixo) |
 | D5 | **Envio definitivo**: ao clicar em "Enviar solicitação" a inscrição fica selada; o candidato não altera nem apaga nada, apenas consulta (direito de acesso, LGPD art. 18); só a Comissão terá acesso, com auditoria. Antes do envio o candidato trabalha em **rascunho** e pode voltar depois. | Responsável, 21/09/2026 | `minha_inscricao_editavel_id()` (só `rascunho`), política de `candidatos`; resolve N4 |
@@ -32,9 +32,20 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | N2 | **SMTP para e-mails de login**: qual conta/domínio envia? (Microsoft 365/Google da COMURG ou um serviço como Resend, com DNS do domínio) | Sem isso nenhum candidato recebe o código | Definir antes de 24/09 |
 | N3 | **Limite de tamanho por arquivo** (hoje 10 MB no protótipo, no banco e no bucket) | Storage e UX | Manter 10 MB; PDFs escaneados costumam caber |
 | N5 | **Retenção e descarte** dos dados e da auditoria (LGPD) | A auditoria hoje é imutável; descarte exigirá procedimento próprio | Definir com o jurídico/DPO |
-| N7 | **Passar para o plano Pro** e quando | Backups, pausa por inatividade, 1 GB de arquivos | Antes de abrir inscrições reais |
 
-## Herdadas do CLAUDE.md (seção 11)
+## Riscos assumidos por ficar no plano Free (D2)
+
+Valores do Free conferidos em supabase.com/pricing em 21/09/2026: banco 500 MB, **arquivos 1 GB**, tráfego de saída **5 GB/mês**, **sem backups**, pausa após 1 semana de inatividade.
+
+| # | Risco | Consequência | Mitigação prevista | Situação |
+|---|---|---|---|---|
+| R1 | **Sem backup** do banco nem dos arquivos | Perda irreversível de dados de candidatos (erro humano, falha do serviço) | Cópia própria, **criptografada**, em local da COMURG, agendada (banco + arquivos). Exige a senha do banco, que fica só em `.env` local | A fazer; **precisa de decisão do destino da cópia** |
+| R2 | **1 GB de arquivos** (cerca de 50 candidatos com ~20 MB cada, estimativa a validar) | Quando lotar, os uploads passam a falhar e candidatos ficam sem conseguir se inscrever (problema de isonomia) | Reduzir o limite por arquivo, orientar PDFs leves, e se o número de candidatos passar de ~100, **guardar arquivos fora do Supabase** (armazenamento da COMURG ou serviço S3-compatível) | **Depende do nº de candidatos esperado** |
+| R3 | **Pausa por inatividade** (1 semana) | Portal fora do ar sem aviso | Agendar uma chamada diária ao banco (keep-alive) e monitorar | A fazer |
+| R4 | **5 GB/mês de tráfego** | Comissão abrindo os mesmos arquivos várias vezes consome a cota | Links assinados de curta duração, miniaturas e cache; monitorar consumo | A fazer na fase do painel |
+
+O que **não** depende do plano e já está pronto: RLS em todas as tabelas, permissões por coluna, inscrição selada após o envio, trava de prazo no servidor, bucket privado, auditoria imutável e schema `interno` fora da API.
+
 
 Continuam em aberto; só afetam as fases seguintes (motor de regras, pagamentos, entrevista), exceto onde indicado.
 
