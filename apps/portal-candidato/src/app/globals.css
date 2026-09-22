@@ -334,7 +334,7 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 
 .criterio{margin-top:16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);padding:18px 20px}
 .criterio-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-.criterio-head h4{font-size:15px}
+.criterio-head h4{font-size:15px;font-weight:800}
 .criterio-head .valor{font-size:14px;font-weight:700;color:var(--text)}
 .barra{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
 .barra i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .3s}
@@ -374,7 +374,7 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .resumo-destaque-total small{color:#9fb3a7}
 
 .topico{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);padding:18px 20px;margin-top:16px}
-.topico h3{font-size:16px;margin-bottom:4px}
+.topico h3{font-size:16px;font-weight:800;margin-bottom:4px}
 .topico .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
 
 .filtros-avancados{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
