@@ -106,3 +106,143 @@ export async function verificarDocumento(args: {
 
   return { resultado: JSON.parse(textoSaida) as ResultadoVerificacao, modelo, versaoPrompt: VERSAO_PROMPT };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Leitura de currículo (candidato): pré-preenche os campos do formulário, sempre EDITÁVEIS.
+// Nada disso grava no banco sozinho — cada item vira um cartão igual aos que a pessoa preencheria
+// na mão, e só é salvo quando ela clicar em "Salvar" (ou removido se estiver errado). O objetivo é
+// listar TUDO que aparecer no currículo (ex.: se tiver 8 cursos, devolver os 8), não um resumo.
+const VERSAO_PROMPT_CURRICULO = "leitura-curriculo-v1-2026-09-22";
+
+const SCHEMA_CURRICULO = {
+  type: "object",
+  properties: {
+    graduacao: {
+      type: ["object", "null"],
+      description: "A graduação principal (bacharelado/licenciatura), se aparecer. Não inclua pós/mestrado/doutorado aqui.",
+      properties: {
+        curso: { type: ["string", "null"] },
+        instituicao: { type: ["string", "null"] },
+        grau: { type: ["string", "null"], enum: ["bacharelado", "licenciatura", "tecnologico", null] },
+        data_conclusao: { type: ["string", "null"], description: "AAAA-MM-DD (se só houver o ano, use 01-01)" },
+      },
+      required: ["curso", "instituicao", "grau", "data_conclusao"],
+      additionalProperties: false,
+    },
+    titulos: {
+      type: "array",
+      description: "Pós-graduação, MBA, mestrado, doutorado — um item por título encontrado.",
+      items: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", enum: ["especializacao", "mestrado", "doutorado"] },
+          denominacao: { type: "string" },
+          instituicao: { type: "string" },
+          carga_horaria: { type: ["number", "null"] },
+          data_conclusao: { type: ["string", "null"], description: "AAAA-MM-DD" },
+        },
+        required: ["tipo", "denominacao", "instituicao", "carga_horaria", "data_conclusao"],
+        additionalProperties: false,
+      },
+    },
+    cursos: {
+      type: "array",
+      description: "Cursos complementares e certificações profissionais — um item por curso/certificação, TODOS os que aparecerem.",
+      items: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", enum: ["curso", "certificacao"] },
+          denominacao: { type: "string" },
+          instituicao: { type: "string" },
+          carga_horaria: { type: ["number", "null"] },
+          data_conclusao: { type: ["string", "null"], description: "AAAA-MM-DD" },
+          numero_credencial: { type: ["string", "null"] },
+          codigo_verificacao: { type: ["string", "null"] },
+        },
+        required: ["tipo", "denominacao", "instituicao", "carga_horaria", "data_conclusao", "numero_credencial", "codigo_verificacao"],
+        additionalProperties: false,
+      },
+    },
+    vinculos: {
+      type: "array",
+      description: "Cada experiência profissional (emprego, contrato, autônomo) — um item por vínculo, TODOS os que aparecerem.",
+      items: {
+        type: "object",
+        properties: {
+          tipo: { type: "string", enum: ["privado", "publico", "autonomo"] },
+          empregador_contratante: { type: "string" },
+          cargo: { type: "string" },
+          inicio: { type: ["string", "null"], description: "AAAA-MM" },
+          fim: { type: ["string", "null"], description: "AAAA-MM, ou null se for o vínculo atual" },
+          ativo: { type: "boolean", description: "true se for o emprego/vínculo atual (sem data de fim)" },
+          descricao: { type: "string", description: "Resumo objetivo das atividades, com base no que está escrito" },
+        },
+        required: ["tipo", "empregador_contratante", "cargo", "inicio", "fim", "ativo", "descricao"],
+        additionalProperties: false,
+      },
+    },
+    observacoes: { type: ["string", "null"] },
+  },
+  required: ["graduacao", "titulos", "cursos", "vinculos", "observacoes"],
+  additionalProperties: false,
+} as const;
+
+const PROMPT_CURRICULO = `Você está lendo o currículo de um candidato do PSS COMURG 2026 para PRÉ-PREENCHER um
+formulário de inscrição. A pessoa vai revisar e editar tudo antes de qualquer coisa ser salva — então é melhor
+listar um item a mais (que ela apaga) do que esquecer um item (que ela teria que digitar do zero).
+
+Regras:
+- Liste TODOS os cursos, certificações, títulos e vínculos de experiência que aparecerem, não só exemplos.
+  Se o currículo tiver 8 cursos, devolva 8 itens em "cursos".
+  Se tiver 4 empregos, devolva 4 itens em "vinculos".
+- Use as palavras do próprio currículo para denominação, cargo, empregador etc. Não traduza nem resuma o nome
+  de cursos ou cargos.
+  Datas: converta para o formato pedido (AAAA-MM ou AAAA-MM-DD) da melhor forma possível; se só houver o ano,
+  use janeiro. Se não conseguir determinar uma data, use null.
+- "ativo": marque true apenas para o vínculo mais recente, se o currículo indicar que é o atual (ex.: "atual",
+  "presente", "até o momento", sem data de fim).
+- Não invente CPF, endereço ou dados que não seja formação/experiência. Não julgue se o candidato está apto;
+  isso não é sua tarefa aqui.`;
+
+export interface DadosCurriculo {
+  graduacao: { curso: string | null; instituicao: string | null; grau: "bacharelado" | "licenciatura" | "tecnologico" | null; data_conclusao: string | null } | null;
+  titulos: { tipo: "especializacao" | "mestrado" | "doutorado"; denominacao: string; instituicao: string; carga_horaria: number | null; data_conclusao: string | null }[];
+  cursos: { tipo: "curso" | "certificacao"; denominacao: string; instituicao: string; carga_horaria: number | null; data_conclusao: string | null; numero_credencial: string | null; codigo_verificacao: string | null }[];
+  vinculos: { tipo: "privado" | "publico" | "autonomo"; empregador_contratante: string; cargo: string; inicio: string | null; fim: string | null; ativo: boolean; descricao: string }[];
+  observacoes: string | null;
+}
+
+export async function lerCurriculo(args: { bytesBase64: string; mime: "application/pdf" | "image/jpeg" | "image/png"; nomeArquivo: string }): Promise<DadosCurriculo> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada no servidor.");
+  const modelo = process.env.OPENAI_EXTRACTION_MODEL || "gpt-4o-mini";
+
+  const conteudoArquivo =
+    args.mime === "application/pdf"
+      ? { type: "input_file", filename: args.nomeArquivo, file_data: `data:${args.mime};base64,${args.bytesBase64}` }
+      : { type: "input_image", image_url: `data:${args.mime};base64,${args.bytesBase64}` };
+
+  const resposta = await fetch(RESPONSES_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: modelo,
+      input: [{ role: "user", content: [conteudoArquivo, { type: "input_text", text: PROMPT_CURRICULO }] }],
+      text: { format: { type: "json_schema", name: "leitura_curriculo", schema: SCHEMA_CURRICULO, strict: true } },
+    }),
+  });
+
+  if (!resposta.ok) {
+    const corpo = await resposta.text();
+    throw new Error(`OpenAI respondeu ${resposta.status}: ${corpo.slice(0, 500)}`);
+  }
+  const dados = await resposta.json();
+  const textoSaida = dados.output
+    ?.flatMap((o: { content?: { text?: string }[] }) => o.content ?? [])
+    .find((c: { text?: string }) => typeof c.text === "string")?.text;
+  if (!textoSaida) throw new Error("A OpenAI não devolveu texto estruturado (formato de resposta inesperado).");
+
+  return JSON.parse(textoSaida) as DadosCurriculo;
+}
+
+export const VERSAO_PROMPT_CURRICULO_EXPORT = VERSAO_PROMPT_CURRICULO;

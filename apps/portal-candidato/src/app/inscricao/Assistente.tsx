@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Candidato, Inscricao } from "@/lib/tipos";
 import type { CursoDeclarado, Documento, Pendencia, Titulo, Vinculo } from "@/lib/tipos-inscricao";
-import type { Contexto } from "./contexto";
+import type { Contexto, RascunhoVinculo } from "./contexto";
 import { PassoCotas } from "./PassoCotas";
 import { PassoDados } from "./PassoDados";
 import { PassoExperiencia } from "./PassoExperiencia";
@@ -44,6 +44,7 @@ export function Assistente(props: DadosIniciais) {
   const [cursos, setCursos] = useState(props.cursos);
   const [vinculos, setVinculos] = useState(props.vinculos);
   const [pendencias, setPendencias] = useState(props.pendencias);
+  const [rascunhosVinculosCV, setRascunhosVinculosCV] = useState<RascunhoVinculo[]>([]);
 
   // primeira etapa com pendência (senão, a revisão)
   const [passo, setPasso] = useState(() => {
@@ -95,6 +96,8 @@ export function Assistente(props: DadosIniciais) {
     pendencias,
     recarregar,
     irPara,
+    rascunhosVinculosCV,
+    definirRascunhosVinculosCV: setRascunhosVinculosCV,
   };
 
   const selada = inscricao != null && inscricao.status !== "rascunho";

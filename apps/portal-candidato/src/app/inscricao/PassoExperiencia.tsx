@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Campo } from "@/components/Campo";
 import { CampoArquivo } from "@/components/CampoArquivo";
 import { Pendencias } from "@/components/Pendencias";
@@ -10,7 +10,7 @@ import { formatarMeses, idsSimultaneos, intervalo, mesParaData, uniaoMeses } fro
 import type { Nivel } from "@/lib/tipos";
 import type { TipoDocumento, TipoVinculo, Vinculo } from "@/lib/tipos-inscricao";
 import { traduzirErro } from "@/lib/validacao";
-import type { Contexto } from "./contexto";
+import type { Contexto, RascunhoVinculo } from "./contexto";
 
 const DOCS_POR_VINCULO: Record<TipoVinculo, TipoDocumento[]> = {
   privado: ["experiencia_ctps", "experiencia_declaracao", "experiencia_contrato"],
@@ -39,23 +39,27 @@ const MES_MAXIMO = "2026-10";
 function CartaoVinculo({
   ctx,
   vinculo,
+  valoresIniciais,
   numero,
   simultaneo,
   aoFechar,
 }: {
   ctx: Contexto;
   vinculo?: Vinculo;
+  /** Só usado quando `vinculo` não é passado (cartão novo): pré-preenche a partir da leitura do currículo. */
+  valoresIniciais?: RascunhoVinculo;
   numero: number;
   simultaneo: boolean;
   aoFechar?: () => void;
 }) {
-  const [tipo, setTipo] = useState<TipoVinculo | "">(vinculo?.tipo ?? "");
-  const [empregador, setEmpregador] = useState(vinculo?.empregador_contratante ?? "");
-  const [cargo, setCargo] = useState(vinculo?.cargo ?? "");
-  const [inicio, setInicio] = useState(vinculo?.inicio.slice(0, 7) ?? "");
-  const [fim, setFim] = useState(vinculo?.fim?.slice(0, 7) ?? "");
-  const [ativo, setAtivo] = useState(vinculo?.ativo ?? false);
-  const [descricao, setDescricao] = useState(vinculo?.descricao ?? "");
+  const [tipo, setTipo] = useState<TipoVinculo | "">(vinculo?.tipo ?? valoresIniciais?.tipo ?? "");
+  const [empregador, setEmpregador] = useState(vinculo?.empregador_contratante ?? valoresIniciais?.empregador_contratante ?? "");
+  const [cargo, setCargo] = useState(vinculo?.cargo ?? valoresIniciais?.cargo ?? "");
+  const [inicio, setInicio] = useState(vinculo?.inicio.slice(0, 7) ?? valoresIniciais?.inicio ?? "");
+  const [fim, setFim] = useState(vinculo?.fim?.slice(0, 7) ?? valoresIniciais?.fim ?? "");
+  const [ativo, setAtivo] = useState(vinculo?.ativo ?? valoresIniciais?.ativo ?? false);
+  const [descricao, setDescricao] = useState(vinculo?.descricao ?? valoresIniciais?.descricao ?? "");
+  const [vindoDoCV] = useState(!vinculo && Boolean(valoresIniciais));
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -118,6 +122,7 @@ function CartaoVinculo({
         <div>
           <strong className="item-title">Vínculo {numero}</strong>
           {simultaneo ? <span className="badge badge-warn">Simultâneo com outro vínculo</span> : null}
+          {vindoDoCV ? <span className="badge badge-warn">Do currículo — confira antes de salvar</span> : null}
         </div>
         {confirmando ? (
           <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 14 }}>
@@ -228,9 +233,26 @@ function CartaoVinculo({
 
 export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
   const nivel = ctx.inscricao?.nivel ?? null;
-  const [novos, setNovos] = useState<number[]>([]);
+  const [novos, setNovos] = useState<{ chave: number; valores?: RascunhoVinculo }[]>([]);
   const [contador, setContador] = useState(1);
   const [tentou, setTentou] = useState(false);
+  // Guarda a REFERÊNCIA do último array já consumido: evita duplicar em desenvolvimento, onde o React
+  // roda o efeito duas vezes de propósito (Strict Mode), e também se o efeito rodar de novo por outro motivo.
+  const consumidoRef = useRef<RascunhoVinculo[] | null>(null);
+
+  // Se a leitura do currículo (etapa 3) trouxe vínculos, cria um cartão pré-preenchido para cada um —
+  // consumido uma única vez (senão duplicaria ao voltar/avançar de etapa, ou em Strict Mode).
+  useEffect(() => {
+    if (ctx.rascunhosVinculosCV.length === 0) return;
+    if (consumidoRef.current === ctx.rascunhosVinculosCV) return;
+    consumidoRef.current = ctx.rascunhosVinculosCV;
+    const trazidos = ctx.rascunhosVinculosCV;
+    const criados = trazidos.map((valores, i) => ({ chave: contador + i, valores }));
+    setNovos((atual) => [...atual, ...criados]);
+    setContador(contador + trazidos.length);
+    ctx.definirRascunhosVinculosCV([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx.rascunhosVinculosCV]);
   // pendências ao vivo: some da lista assim que o candidato resolve (o banco recalcula a cada mudança)
   const faltam = tentou ? ctx.pendencias.filter((p) => p.etapa === 4) : [];
   const [salvando, setSalvando] = useState(false);
@@ -284,13 +306,14 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
         {ctx.vinculos.map((v, i) => (
           <CartaoVinculo key={v.id} ctx={ctx} vinculo={v} numero={i + 1} simultaneo={simultaneos.has(v.id)} />
         ))}
-        {novos.map((k, i) => (
+        {novos.map((n, i) => (
           <CartaoVinculo
-            key={`novo-${k}`}
+            key={`novo-${n.chave}`}
             ctx={ctx}
             numero={ctx.vinculos.length + i + 1}
             simultaneo={false}
-            aoFechar={() => setNovos((l) => l.filter((x) => x !== k))}
+            valoresIniciais={n.valores}
+            aoFechar={() => setNovos((l) => l.filter((x) => x.chave !== n.chave))}
           />
         ))}
         {ctx.vinculos.length === 0 && novos.length === 0 ? <div className="empty">Nenhum vínculo cadastrado ainda.</div> : null}
@@ -299,7 +322,7 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
         type="button"
         className="btn add"
         onClick={() => {
-          setNovos((l) => [...l, contador]);
+          setNovos((l) => [...l, { chave: contador }]);
           setContador((c) => c + 1);
         }}
       >

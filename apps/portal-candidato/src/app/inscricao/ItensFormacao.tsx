@@ -6,7 +6,7 @@ import { CampoArquivo } from "@/components/CampoArquivo";
 import { createClient } from "@/lib/supabase/client";
 import type { CursoDeclarado, TipoCurso, TipoDocumento, TipoTitulo, Titulo } from "@/lib/tipos-inscricao";
 import { traduzirErro } from "@/lib/validacao";
-import type { Contexto } from "./contexto";
+import type { Contexto, RascunhoCurso, RascunhoTitulo } from "./contexto";
 
 const DATA_PUBLICACAO = "2026-09-24";
 const DATA_ENCERRAMENTO = "2026-10-07";
@@ -19,12 +19,26 @@ const DOC_TITULO: Record<TipoTitulo, TipoDocumento> = {
 
 /* ------------------------------------------------------------------ Pós-graduação */
 
-export function CartaoTitulo({ ctx, titulo, aoFechar, numero }: { ctx: Contexto; titulo?: Titulo; aoFechar?: () => void; numero: number }) {
-  const [tipo, setTipo] = useState<TipoTitulo | "">(titulo?.tipo ?? "");
-  const [nome, setNome] = useState(titulo?.denominacao ?? "");
-  const [inst, setInst] = useState(titulo?.instituicao ?? "");
-  const [carga, setCarga] = useState(titulo ? String(titulo.carga_horaria) : "");
-  const [data, setData] = useState(titulo?.data_conclusao ?? "");
+export function CartaoTitulo({
+  ctx,
+  titulo,
+  valoresIniciais,
+  aoFechar,
+  numero,
+}: {
+  ctx: Contexto;
+  titulo?: Titulo;
+  /** Só usado quando `titulo` não é passado (cartão novo): pré-preenche a partir da leitura do currículo. */
+  valoresIniciais?: RascunhoTitulo;
+  aoFechar?: () => void;
+  numero: number;
+}) {
+  const [tipo, setTipo] = useState<TipoTitulo | "">(titulo?.tipo ?? valoresIniciais?.tipo ?? "");
+  const [nome, setNome] = useState(titulo?.denominacao ?? valoresIniciais?.denominacao ?? "");
+  const [inst, setInst] = useState(titulo?.instituicao ?? valoresIniciais?.instituicao ?? "");
+  const [carga, setCarga] = useState(titulo ? String(titulo.carga_horaria) : (valoresIniciais?.carga_horaria ?? ""));
+  const [data, setData] = useState(titulo?.data_conclusao ?? valoresIniciais?.data_conclusao ?? "");
+  const [vindoDoCV] = useState(!titulo && Boolean(valoresIniciais));
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -76,7 +90,10 @@ export function CartaoTitulo({ ctx, titulo, aoFechar, numero }: { ctx: Contexto;
   return (
     <div className="item">
       <div className="item-head">
-        <strong className="item-title">Título {numero}</strong>
+        <div>
+          <strong className="item-title">Título {numero}</strong>
+          {vindoDoCV ? <span className="badge badge-warn">Do currículo — confira antes de salvar</span> : null}
+        </div>
         {confirmando ? (
           <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 14 }}>
             Remover este título?
@@ -152,14 +169,28 @@ export function CartaoTitulo({ ctx, titulo, aoFechar, numero }: { ctx: Contexto;
 
 /* ------------------------------------------------------------------ Cursos e certificações */
 
-export function CartaoCurso({ ctx, curso, aoFechar, numero }: { ctx: Contexto; curso?: CursoDeclarado; aoFechar?: () => void; numero: number }) {
-  const [tipo, setTipo] = useState<TipoCurso | "">(curso?.tipo ?? "");
-  const [nome, setNome] = useState(curso?.denominacao ?? "");
-  const [inst, setInst] = useState(curso?.instituicao ?? "");
-  const [carga, setCarga] = useState(curso?.carga_horaria ? String(curso.carga_horaria) : "");
-  const [data, setData] = useState(curso?.data_conclusao ?? "");
-  const [cred, setCred] = useState(curso?.numero_credencial ?? "");
-  const [codigo, setCodigo] = useState(curso?.codigo_verificacao ?? "");
+export function CartaoCurso({
+  ctx,
+  curso,
+  valoresIniciais,
+  aoFechar,
+  numero,
+}: {
+  ctx: Contexto;
+  curso?: CursoDeclarado;
+  /** Só usado quando `curso` não é passado (cartão novo): pré-preenche a partir da leitura do currículo. */
+  valoresIniciais?: RascunhoCurso;
+  aoFechar?: () => void;
+  numero: number;
+}) {
+  const [tipo, setTipo] = useState<TipoCurso | "">(curso?.tipo ?? valoresIniciais?.tipo ?? "");
+  const [nome, setNome] = useState(curso?.denominacao ?? valoresIniciais?.denominacao ?? "");
+  const [inst, setInst] = useState(curso?.instituicao ?? valoresIniciais?.instituicao ?? "");
+  const [carga, setCarga] = useState(curso?.carga_horaria ? String(curso.carga_horaria) : (valoresIniciais?.carga_horaria ?? ""));
+  const [data, setData] = useState(curso?.data_conclusao ?? valoresIniciais?.data_conclusao ?? "");
+  const [cred, setCred] = useState(curso?.numero_credencial ?? valoresIniciais?.numero_credencial ?? "");
+  const [codigo, setCodigo] = useState(curso?.codigo_verificacao ?? valoresIniciais?.codigo_verificacao ?? "");
+  const [vindoDoCV] = useState(!curso && Boolean(valoresIniciais));
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -220,7 +251,10 @@ export function CartaoCurso({ ctx, curso, aoFechar, numero }: { ctx: Contexto; c
   return (
     <div className="item">
       <div className="item-head">
-        <strong className="item-title">Item {numero}</strong>
+        <div>
+          <strong className="item-title">Item {numero}</strong>
+          {vindoDoCV ? <span className="badge badge-warn">Do currículo — confira antes de salvar</span> : null}
+        </div>
         {confirmando ? (
           <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 14 }}>
             Remover este item?

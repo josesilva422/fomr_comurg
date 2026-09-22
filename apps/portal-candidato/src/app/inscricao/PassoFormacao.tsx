@@ -7,8 +7,10 @@ import { Pendencias } from "@/components/Pendencias";
 import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS, REQUISITOS } from "@/lib/requisitos";
 import type { Inscricao } from "@/lib/tipos";
+import type { DadosCurriculo } from "@/lib/openai";
 import { traduzirErro } from "@/lib/validacao";
-import { docsDoTipo, type Contexto } from "./contexto";
+import { docsDoTipo, type Contexto, type RascunhoCurso, type RascunhoTitulo } from "./contexto";
+import { ImportarCurriculo } from "./ImportarCurriculo";
 import { CartaoCurso, CartaoTitulo } from "./ItensFormacao";
 
 type Grau = NonNullable<Inscricao["grau_graduacao"]>;
@@ -31,9 +33,9 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
   // pendências ao vivo: some da lista assim que o candidato resolve (o banco recalcula a cada mudança)
   const faltam = tentou ? ctx.pendencias.filter((p) => p.etapa === 3) : [];
   const [salvando, setSalvando] = useState(false);
-  // cartões ainda não salvos (chaves) — os salvos vêm do banco
-  const [novosTitulos, setNovosTitulos] = useState<number[]>([]);
-  const [novosCursos, setNovosCursos] = useState<number[]>([]);
+  // cartões ainda não salvos — os salvos vêm do banco; `valores`, quando presente, vem da leitura do currículo
+  const [novosTitulos, setNovosTitulos] = useState<{ chave: number; valores?: RascunhoTitulo }[]>([]);
+  const [novosCursos, setNovosCursos] = useState<{ chave: number; valores?: RascunhoCurso }[]>([]);
   const [contador, setContador] = useState(1);
 
   useEffect(() => {
@@ -115,6 +117,61 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
 
   const docs = (tipo: string) => docsDoTipo(ctx.documentos, tipo);
 
+  function aplicarLeituraCurriculo(dados: DadosCurriculo) {
+    // Graduação: só preenche o que ainda estiver vazio (não sobrescreve o que a pessoa já digitou).
+    const g = dados.graduacao;
+    if (g) {
+      if (!curso && g.curso) {
+        const encontrado = (opcoes ?? []).find((o) => o.toLowerCase() === g.curso!.trim().toLowerCase());
+        if (encontrado) setCurso(encontrado);
+      }
+      if (!grau && g.grau) setGrau(g.grau);
+      if (!instituicao && g.instituicao) setInstituicao(g.instituicao);
+      if (!colacao && g.data_conclusao) setColacao(g.data_conclusao);
+    }
+
+    let c = contador;
+    const titulosNovos = dados.titulos.map((t) => ({
+      chave: c++,
+      valores: {
+        tipo: t.tipo,
+        denominacao: t.denominacao,
+        instituicao: t.instituicao,
+        carga_horaria: t.carga_horaria != null ? String(t.carga_horaria) : "",
+        data_conclusao: t.data_conclusao ?? "",
+      } satisfies RascunhoTitulo,
+    }));
+    const cursosNovos = dados.cursos.map((k) => ({
+      chave: c++,
+      valores: {
+        tipo: k.tipo,
+        denominacao: k.denominacao,
+        instituicao: k.instituicao,
+        carga_horaria: k.carga_horaria != null ? String(k.carga_horaria) : "",
+        data_conclusao: k.data_conclusao ?? "",
+        numero_credencial: k.numero_credencial ?? "",
+        codigo_verificacao: k.codigo_verificacao ?? "",
+      } satisfies RascunhoCurso,
+    }));
+    setContador(c);
+    if (titulosNovos.length) setNovosTitulos((l) => [...l, ...titulosNovos]);
+    if (cursosNovos.length) setNovosCursos((l) => [...l, ...cursosNovos]);
+
+    if (dados.vinculos.length) {
+      ctx.definirRascunhosVinculosCV(
+        dados.vinculos.map((v) => ({
+          tipo: v.tipo,
+          empregador_contratante: v.empregador_contratante,
+          cargo: v.cargo,
+          inicio: v.inicio ?? "",
+          fim: v.ativo ? "" : (v.fim ?? ""),
+          ativo: v.ativo,
+          descricao: v.descricao,
+        })),
+      );
+    }
+  }
+
   return (
     <section className="card step">
       <header className="step-head">
@@ -125,6 +182,8 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
           pontuar na análise curricular.
         </p>
       </header>
+
+      <ImportarCurriculo aoLido={aplicarLeituraCurriculo} />
 
       <h3>Graduação</h3>
       <p className="sub">
@@ -262,12 +321,13 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         {ctx.titulos.map((t, i) => (
           <CartaoTitulo key={t.id} ctx={ctx} titulo={t} numero={i + 1} />
         ))}
-        {novosTitulos.map((k, i) => (
+        {novosTitulos.map((n, i) => (
           <CartaoTitulo
-            key={`novo-${k}`}
+            key={`novo-${n.chave}`}
             ctx={ctx}
             numero={ctx.titulos.length + i + 1}
-            aoFechar={() => setNovosTitulos((l) => l.filter((x) => x !== k))}
+            valoresIniciais={n.valores}
+            aoFechar={() => setNovosTitulos((l) => l.filter((x) => x.chave !== n.chave))}
           />
         ))}
       </div>
@@ -275,7 +335,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         type="button"
         className="btn btn-sm add"
         onClick={() => {
-          setNovosTitulos((l) => [...l, contador]);
+          setNovosTitulos((l) => [...l, { chave: contador }]);
           setContador((c) => c + 1);
         }}
       >
@@ -292,12 +352,13 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         {ctx.cursos.map((c, i) => (
           <CartaoCurso key={c.id} ctx={ctx} curso={c} numero={i + 1} />
         ))}
-        {novosCursos.map((k, i) => (
+        {novosCursos.map((n, i) => (
           <CartaoCurso
-            key={`novo-${k}`}
+            key={`novo-${n.chave}`}
             ctx={ctx}
             numero={ctx.cursos.length + i + 1}
-            aoFechar={() => setNovosCursos((l) => l.filter((x) => x !== k))}
+            valoresIniciais={n.valores}
+            aoFechar={() => setNovosCursos((l) => l.filter((x) => x.chave !== n.chave))}
           />
         ))}
       </div>
@@ -305,7 +366,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         type="button"
         className="btn btn-sm add"
         onClick={() => {
-          setNovosCursos((l) => [...l, contador]);
+          setNovosCursos((l) => [...l, { chave: contador }]);
           setContador((c) => c + 1);
         }}
       >
