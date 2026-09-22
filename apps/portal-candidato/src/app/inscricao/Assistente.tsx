@@ -6,9 +6,12 @@ import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Candidato, Inscricao } from "@/lib/tipos";
 import type { CursoDeclarado, Documento, Pendencia, Titulo, Vinculo } from "@/lib/tipos-inscricao";
 import type { Contexto } from "./contexto";
+import { PassoCotas } from "./PassoCotas";
 import { PassoDados } from "./PassoDados";
 import { PassoExperiencia } from "./PassoExperiencia";
 import { PassoFormacao } from "./PassoFormacao";
+import { PassoPagamento } from "./PassoPagamento";
+import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
 
 const PASSOS = [
@@ -20,12 +23,6 @@ const PASSOS = [
   "Pagamento (Pix)",
   "Revisão e envio",
 ] as const;
-
-const EM_BREVE: Record<number, string> = {
-  5: "Vagas reservadas (pessoa com deficiência e candidatos negros) e pedido de isenção da taxa.",
-  6: "Chave Pix, valor da taxa e envio do comprovante de pagamento.",
-  7: "Conferência das pendências, declarações e o botão Enviar solicitação.",
-};
 
 export interface DadosIniciais {
   userId: string;
@@ -48,10 +45,10 @@ export function Assistente(props: DadosIniciais) {
   const [vinculos, setVinculos] = useState(props.vinculos);
   const [pendencias, setPendencias] = useState(props.pendencias);
 
-  // primeira etapa com pendência entre 1 e 4 (senão, a 5)
+  // primeira etapa com pendência (senão, a revisão)
   const [passo, setPasso] = useState(() => {
-    const abertas = props.pendencias.filter((p) => p.etapa <= 4).map((p) => p.etapa);
-    return abertas.length ? Math.min(...abertas) : 5;
+    const abertas = props.pendencias.map((p) => p.etapa).filter((n) => n >= 1 && n <= 6);
+    return abertas.length ? Math.min(...abertas) : 7;
   });
   const [visitados, setVisitados] = useState<number[]>([]);
 
@@ -105,13 +102,12 @@ export function Assistente(props: DadosIniciais) {
 
   function statusDoPasso(n: number): { classe: string; texto: string } {
     if (n === passo) return { classe: "is-current", texto: "Etapa atual" };
-    if (n <= 4) {
-      if (n > 1 && !candidato) return { classe: "", texto: "Preencha a etapa 1" };
-      const k = pendencias.filter((p) => p.etapa === n).length;
-      if (k === 0) return { classe: "is-done", texto: "Completa" };
-      return { classe: visitados.includes(n) ? "is-warn" : "", texto: `${k} pendência${k > 1 ? "s" : ""}` };
-    }
-    return { classe: "", texto: "Em breve" };
+    if (n > 1 && !candidato) return { classe: "", texto: "Preencha a etapa 1" };
+    if (n === 7) return { classe: "", texto: "Conferir e enviar" };
+    if (n === 5 && !visitados.includes(5) && pendencias.every((p) => p.etapa !== 5)) return { classe: "", texto: "Opcional" };
+    const k = pendencias.filter((p) => p.etapa === n).length;
+    if (k === 0) return { classe: "is-done", texto: "Completa" };
+    return { classe: visitados.includes(n) ? "is-warn" : "", texto: `${k} pendência${k > 1 ? "s" : ""}` };
   }
 
   const chipVaga =
@@ -169,16 +165,9 @@ export function Assistente(props: DadosIniciais) {
         {passo === 2 && candidato && inscricao && <PassoVaga key="p2" ctx={ctx} />}
         {passo === 3 && candidato && inscricao && <PassoFormacao key="p3" ctx={ctx} />}
         {passo === 4 && candidato && inscricao && <PassoExperiencia key="p4" ctx={ctx} />}
-        {passo >= 5 && (
-          <section className="card step">
-            <header className="step-head">
-              <p className="eyebrow">Etapa {passo} de 7</p>
-              <h2>{PASSOS[passo - 1]}</h2>
-              <p className="lead">{EM_BREVE[passo]}</p>
-            </header>
-            <div className="em-breve">Esta etapa será liberada na próxima entrega do sistema.</div>
-          </section>
-        )}
+        {passo === 5 && candidato && inscricao && <PassoCotas key="p5" ctx={ctx} />}
+        {passo === 6 && candidato && inscricao && <PassoPagamento key="p6" ctx={ctx} />}
+        {passo === 7 && candidato && inscricao && <PassoRevisao key="p7" ctx={ctx} />}
         <div className="actions" style={{ position: "static", background: "transparent", border: 0, padding: 0, marginTop: 18 }}>
           <button
             type="button"
