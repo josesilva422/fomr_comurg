@@ -17,7 +17,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: temaInicial }} />
       </head>
-      <body>{children}</body>
+      {/* suppressHydrationWarning aqui: algumas extensões de navegador (ex.: antivírus) injetam
+          atributos como bis_skin_checked no <body> antes do React hidratar. Isso não é um bug do
+          app; só evita o aviso no console. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

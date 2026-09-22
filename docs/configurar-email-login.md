@@ -22,14 +22,30 @@ preenchido — falta só você colar a senha e clicar em salvar.
 
 ## O que também precisa mudar (eu oriento, você confirma)
 
-Além de ligar o SMTP, é preciso trocar o **modelo do e-mail** para mostrar o código em vez de um link de confirmação
-de cadastro. Em `Authentication → Emails → Templates`, no modelo **Magic Link**, o corpo do e-mail precisa conter
-`{{ .Token }}` (o código de 6 dígitos que o candidato digita na tela). Um texto simples como:
+Além de ligar o SMTP, é preciso trocar o **modelo do e-mail** para mostrar o código em vez de só um link de
+confirmação. Isso já foi confirmado como o problema em 22/09/2026: o e-mail chegava, mas sem o código.
+
+Em `Authentication → Emails → Templates`, edite **os dois modelos abaixo** (o Supabase usa um ou outro dependendo
+se é a primeira vez do candidato ou não — dá para não saber qual vai disparar, então os dois precisam mostrar o
+código):
+
+**1. Confirm signup** (dispara no primeiro login de cada candidato — o mais comum)
+Suporte não mostra {{ .Token }} por padrão. Troque o corpo por algo como:
 
 > Seu código de acesso ao PSS COMURG 2026 é: **{{ .Token }}**
-> Ele vale por 15 minutos.
+> Ele vale por 15 minutos. Se você não solicitou este código, ignore este e-mail.
+
+**2. Magic Link** (dispara nos logins seguintes do mesmo candidato)
+Mesmo texto:
+
+> Seu código de acesso ao PSS COMURG 2026 é: **{{ .Token }}**
+> Ele vale por 15 minutos. Se você não solicitou este código, ignore este e-mail.
+
+Salve os dois. Não precisa mexer em "Reset Password", "Change Email Address" nem "Invite user" — o portal do
+candidato não usa esses fluxos.
 
 ## Teste antes de divulgar
 
 Depois de configurado, teste com um e-mail seu: peça o código na tela de login e confira se chegou (olhe também o
-spam). Se não chegar, o erro mais comum é host/porta errados ou a senha não ter sido salva.
+spam). Se o código ainda não aparecer, confira se salvou os DOIS modelos (não só um) e se o texto tem exatamente
+`{{ .Token }}`, com os pontos e as chaves duplas.
