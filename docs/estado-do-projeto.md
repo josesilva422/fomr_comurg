@@ -4,7 +4,7 @@ Este arquivo existe para o caso da conversa com o assistente ser resumida ou rei
 os outros arquivos de `docs/` têm os detalhes de cada decisão. **Sempre confira a data da última atualização
 no topo e o `git log` — este arquivo pode ficar desatualizado se eu esquecer de mexer nele.**
 
-**Última atualização:** 22/09/2026, cerca de 23h. **Prazo:** entrega do projeto "amanhã" (combinado em 22/09).
+**Última atualização:** 22/09/2026, madrugada (depois das 23h). **Prazo:** entrega do projeto "amanhã" (combinado em 22/09).
 
 ## O que é este projeto
 
@@ -57,25 +57,29 @@ divergir dele, o edital vence.**
    pedir para eu resetar via SQL — `extensions.crypt(...)` em `auth.users`, não fica escrito em nenhum arquivo
    por segurança).
 
-## Dados de teste ainda no banco (apagar antes de ir para produção)
+6. **Importar currículo com preenchimento automático por IA** (`ImportarCurriculo.tsx`, topo da etapa
+   Formação): a pessoa envia o currículo (PDF/JPG/PNG) e a IA (`lerCurriculo()` em `src/lib/openai.ts`)
+   devolve graduação/títulos/cursos/vínculos encontrados. Isso só **pré-preenche cartões editáveis** com o
+   selo "Do currículo — confira antes de salvar"; nada vira `titulos_declarados`/`cursos_declarados`/
+   `vinculos_declarados` de verdade até a pessoa clicar em "Salvar" em cada cartão, um por um (se o currículo
+   tem 8 cursos, aparecem 8 cartões separados). O próprio arquivo do currículo é salvo como documento normal
+   (`curriculo_anexo_v`), contando como o envio do Anexo V. Testado de ponta a ponta com currículo fictício
+   sintético: 2 títulos, 8 cursos (1 certificação com credencial/código), 2 vínculos, todos os campos certos.
+   Bug encontrado e corrigido no teste: Strict Mode do React duplicava os cartões de vínculo (useEffect
+   rodando duas vezes) — corrigido com guarda por identidade de referência (`useRef`) em `PassoExperiencia.tsx`.
 
-- 3 candidatos demo para exercitar o painel: **Fernanda Lima Costa** (habilitada, 47 pts), **Rafael Souza
-  Andrade** (habilitado, 7 pts), **Camila Ribeiro Martins** (inabilitada, 0 pts) — e-mails `demo.*@teste.invalid`.
-- Uns 10 arquivos pequenos de teste no bucket `documentos` do Storage (não dá para apagar por SQL; é pelo
-  painel do Supabase).
+## Dados de teste
 
-## Pedido em andamento (ainda não implementado)
+Os candidatos demo do painel (Fernanda, Rafael, Camila) e o candidato de teste do currículo
+(`teste.cv@comurg.invalid`) **já foram apagados** (candidatos, inscrições, documentos e usuários de auth) e a
+data de abertura das inscrições (`interno.configuracao.inscricoes_abertura`) foi **restaurada para
+24/09/2026 00:00 -03** (estava em 20/09 só para permitir testar antes da data real — a partir de agora o
+formulário volta a bloquear preenchimento antes dessa data, então testes futuros no wizard precisam mexer
+nessa config de novo, temporariamente).
 
-**Importar currículo com preenchimento automático por IA.** O responsável perguntou a complexidade antes de eu
-começar; combinamos que:
-- É viável e não é um risco de segurança grande (fica do lado do candidato, não mexe em dado de outro usuário).
-- **Não é pequeno**: precisa de (1) campo de upload do currículo (o tipo `curriculo_anexo_v` já existe no
-  banco), (2) a IA lendo o PDF e montando uma lista de formação/experiência/cursos encontrados, (3) **uma
-  tela de conferência obrigatória** antes de qualquer dado virar `titulos_declarados`/`cursos_declarados`/
-  `vinculos_declarados` de verdade — currículo é texto livre, a IA vai errar de vez em quando, e o princípio
-  do projeto é decisão sempre humana, nunca preenchimento silencioso.
-- Ainda não comecei a construir. Se retomar isso, seguir o padrão já usado em `src/lib/openai.ts` (Responses
-  API, `json_schema` estrito) e nos repetidores de Formação/Experiência (`apps/portal-candidato/src/app/inscricao/`).
+Ainda sobraram uns **19 arquivos pequenos de teste** no bucket `documentos` do Storage — não dá para apagar
+por SQL (`storage.objects` não limpa o blob por trás de forma confiável por aqui); precisa ser pelo painel do
+Supabase (Storage → bucket `documentos` → selecionar e excluir).
 
 ## Dívidas técnicas conhecidas (não escondidas, documentadas)
 
@@ -91,5 +95,6 @@ começar; combinamos que:
 
 - Publicar (Netlify) — preparado em `docs/publicar-netlify.md`, mas **não executado** (aguardando autorização).
 - Domínio próprio (hoje seria um `*.netlify.app`).
-- Apagar os dados de teste (candidatos demo + arquivos de teste no Storage).
-- Confirmar horário exato de abertura/encerramento (`interno.configuracao`) — hoje é uma suposição.
+- Apagar os ~19 arquivos de teste que sobraram no Storage (só dá pelo painel do Supabase, ver acima).
+- Confirmar horário exato de abertura/encerramento (`interno.configuracao`) — hoje é uma suposição (mas já
+  batendo com a data do edital, 24/09/2026 00:00).
