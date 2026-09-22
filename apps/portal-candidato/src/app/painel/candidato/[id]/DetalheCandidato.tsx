@@ -46,8 +46,9 @@ interface VerificacaoIA {
   legivel: boolean;
   comparacoes: Comparacao[];
   observacoes_gerais: string | null;
-  // Opcional: extrações feitas antes de 22/09/2026 (versão v2 do prompt) não têm esse campo.
+  // Opcionais: extrações feitas antes de 22/09/2026 (versões v2/v3 do prompt) não têm esses campos.
   indicios_adulteracao?: { suspeita: boolean; detalhes: string | null };
+  texto_extraido?: string;
   confianca_geral: number;
 }
 interface Extracao {
@@ -386,6 +387,14 @@ function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
             ))}
           </div>
           {extracao.json_extraido.observacoes_gerais ? <p className="hint" style={{ marginTop: 8 }}>{extracao.json_extraido.observacoes_gerais}</p> : null}
+          {extracao.json_extraido.texto_extraido ? (
+            <details style={{ marginTop: 8 }}>
+              <summary>Transcrição completa do documento</summary>
+              <p className="hint" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                {extracao.json_extraido.texto_extraido}
+              </p>
+            </details>
+          ) : null}
           <p className="hint" style={{ marginTop: 8 }}>
             Confiança informada pela IA: {(extracao.json_extraido.confianca_geral * 100).toFixed(0)}% · Verificado em {new Date(extracao.criado_em).toLocaleString("pt-BR")}
           </p>

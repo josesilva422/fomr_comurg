@@ -1,16 +1,19 @@
 // Verificação de documentos via OpenAI (Responses API). SERVIDOR APENAS — nunca importar em um
 // componente "use client" (a chave ficaria exposta no navegador).
 //
-// Princípio do projeto (CLAUDE.md): "A IA extrai; o código pontua." Esta função compara, campo a campo,
-// o que o candidato DECLAROU no formulário com o que o documento REALMENTE diz — e cita o trecho. Ela
-// NUNCA decide habilitação, pontuação ou autenticidade; quem faz isso é o motor de regras e, por fim,
-// a Comissão. Se o documento não menciona algo, a resposta é "não mencionado", nunca um "sim" inventado.
+// Princípio do projeto (CLAUDE.md): "A IA extrai; o código pontua." Esta função faz duas coisas com o
+// documento: (1) transcreve tudo o que está explícito nele, literalmente, sem resumir nem deduzir
+// ("texto_extraido" — dá à Comissão a leitura completa do documento, não só os campos comparados); e
+// (2) compara, campo a campo, o que o candidato DECLAROU no formulário com o que o documento REALMENTE
+// diz, citando o trecho. Ela NUNCA decide habilitação, pontuação ou autenticidade; quem faz isso é o
+// motor de regras e, por fim, a Comissão. Se o documento não menciona algo, a resposta é "não
+// mencionado", nunca um "sim" inventado.
 //
 // Formato da chamada verificado em developers.openai.com (guias "pdf-files" e "structured-outputs") em
 // 22/09/2026. Testado pela primeira vez em 22/09/2026 com a chave fornecida pelo responsável.
 
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
-const VERSAO_PROMPT = "verificacao-documento-v3-2026-09-22";
+const VERSAO_PROMPT = "verificacao-documento-v4-2026-09-22";
 
 export interface CampoDeclarado {
   campo: string;
@@ -21,6 +24,11 @@ const SCHEMA_VERIFICACAO = {
   type: "object",
   properties: {
     legivel: { type: "boolean", description: "false se o documento estiver ilegível, cortado ou genérico demais" },
+    texto_extraido: {
+      type: "string",
+      description:
+        "Transcrição literal e completa de tudo que está explícito no documento (todas as páginas): campos preenchidos, nomes, números de documento, datas, cargos, períodos, valores, assinaturas, carimbos, timbre, códigos de verificação/QR e qualquer outro dado visível e relevante. Nunca resumida, nunca deduzida — só o que está escrito ou representado no documento. Se houver corte, trecho ilegível, ausência de assinatura/carimbo/timbre, diga isso dentro do texto, no ponto correspondente.",
+    },
     comparacoes: {
       type: "array",
       description: "Uma entrada para CADA campo declarado recebido, na mesma ordem.",
@@ -49,14 +57,25 @@ const SCHEMA_VERIFICACAO = {
     },
     confianca_geral: { type: "number", description: "0 a 1" },
   },
-  required: ["legivel", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
+  required: ["legivel", "texto_extraido", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
   additionalProperties: false,
 } as const;
 
 function montarPrompt(campos: CampoDeclarado[]): string {
   const lista = campos.map((c, i) => `${i + 1}. ${c.campo}: "${c.valor}"`).join("\n");
-  return `Você está conferindo um documento anexado a uma inscrição do PSS COMURG 2026. O candidato DECLAROU os
-seguintes dados no formulário (não assuma que estão certos — é isso que você vai checar):
+  return `Você está conferindo um documento anexado a uma inscrição do PSS COMURG 2026. Faça DUAS coisas com este
+documento, nesta ordem.
+
+1) TRANSCRIÇÃO LITERAL COMPLETA, em "texto_extraido": leia o documento inteiro (todas as páginas) e transcreva
+fielmente tudo o que está explícito nele — campos preenchidos, nomes, números de documento, datas, cargos,
+períodos, valores, assinaturas, carimbos, timbre, códigos de verificação/QR, observações e qualquer outro dado
+visível e relevante. Não resuma, não traduza, não deduza nada com bom senso ou conhecimento externo — só o que
+está escrito ou visualmente representado no documento. Se alguma parte estiver cortada, ilegível, sem
+assinatura, sem carimbo, sem papel timbrado, ou com sinal de edição, diga isso dentro do texto, no ponto
+correspondente (ou em "observacoes_gerais", se for algo geral do documento como um todo).
+
+2) COMPARAÇÃO CAMPO A CAMPO: o candidato DECLAROU os seguintes dados no formulário (não assuma que estão certos
+— é isso que você vai checar contra o que você leu no passo 1):
 
 ${lista}
 
@@ -70,9 +89,11 @@ Para CADA um dos itens acima, na mesma ordem, diga:
   bom senso. Só marque "sim" se estiver escrito ou representado de forma inequívoca no documento.
 - "pagina": em qual página do documento está esse trecho (a primeira página é 1). Use null se documento_diz for
   null, se o arquivo não tiver conceito de página (uma única imagem), ou se não der para determinar com certeza.
+
 Marque "legivel": false se o documento estiver ilegível, cortado, ou genérico demais para checar qualquer campo
-com segurança. Em "observacoes_gerais", aponte algo relevante fora das comparações (falta de assinatura, papel
-sem timbre, carimbo ausente), se houver.
+com segurança — mesmo assim, transcreva em "texto_extraido" o que der para ler. Em "observacoes_gerais", aponte
+algo relevante fora da transcrição e das comparações (falta de assinatura, papel sem timbre, carimbo ausente),
+se houver.
 
 Em "indicios_adulteracao", repare se algum campo do documento parece visualmente diferente do resto — fonte ou
 tamanho de letra que destoa, alinhamento fora do padrão, cor de texto diferente, região com aspecto de
@@ -83,6 +104,7 @@ algo concreto e descreva em "detalhes"; na dúvida, ou se o documento parecer un
 
 export interface ResultadoVerificacao {
   legivel: boolean;
+  texto_extraido: string;
   comparacoes: { campo: string; documento_diz: string | null; pagina: number | null; confere: "sim" | "nao" | "nao_mencionado" }[];
   observacoes_gerais: string | null;
   indicios_adulteracao: { suspeita: boolean; detalhes: string | null };
