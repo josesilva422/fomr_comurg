@@ -3,22 +3,30 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
+import type { Grupo, Nivel } from "@/lib/tipos";
 import type { AvaliacaoResumo } from "@/lib/pontuacao";
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+const PONTOS_MINIMOS_ENTREVISTA = 35; // edital, item 6.4.4
 
 export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
   const router = useRouter();
-  const [filtro, setFiltro] = useState<"todos" | "habilitados" | "inabilitados">("todos");
+  const [habilitacao, setHabilitacao] = useState<"todos" | "habilitados" | "inabilitados">("todos");
+  const [grupo, setGrupo] = useState<Grupo | "todos">("todos");
+  const [nivel, setNivel] = useState<Nivel | "todos">("todos");
+  const [soConvocaveis, setSoConvocaveis] = useState(false);
   const [busca, setBusca] = useState("");
 
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return avaliacoes
-      .filter((a) => (filtro === "todos" ? true : filtro === "habilitados" ? a.habilitado : !a.habilitado))
+      .filter((a) => (habilitacao === "todos" ? true : habilitacao === "habilitados" ? a.habilitado : !a.habilitado))
+      .filter((a) => grupo === "todos" || a.grupo === grupo)
+      .filter((a) => nivel === "todos" || a.nivel === nivel)
+      .filter((a) => !soConvocaveis || (a.habilitado && a.total >= PONTOS_MINIMOS_ENTREVISTA))
       .filter((a) => !termo || a.nome.toLowerCase().includes(termo) || a.cpf.includes(termo.replace(/\D/g, "")))
       .sort((a, b) => b.total - a.total);
-  }, [avaliacoes, filtro, busca]);
+  }, [avaliacoes, habilitacao, grupo, nivel, soConvocaveis, busca]);
 
   if (!avaliacoes.length) return <div className="empty">Nenhuma inscrição enviada até o momento.</div>;
 
@@ -27,7 +35,7 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
       <div className="painel-toolbar">
         <div className="painel-tabs">
           {(["todos", "habilitados", "inabilitados"] as const).map((f) => (
-            <button key={f} type="button" className={`btn btn-sm${filtro === f ? " btn-primary" : ""}`} onClick={() => setFiltro(f)}>
+            <button key={f} type="button" className={`btn btn-sm${habilitacao === f ? " btn-primary" : ""}`} onClick={() => setHabilitacao(f)}>
               {f === "todos" ? `Todos (${avaliacoes.length})` : f === "habilitados" ? `Habilitados (${avaliacoes.filter((a) => a.habilitado).length})` : `Inabilitados (${avaliacoes.filter((a) => !a.habilitado).length})`}
             </button>
           ))}
@@ -35,8 +43,45 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
         <input className="painel-busca" placeholder="Buscar por nome ou CPF…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar candidato" />
       </div>
 
+      <div className="filtros-avancados" style={{ marginBottom: 16 }}>
+        <select value={grupo} onChange={(e) => setGrupo(e.target.value as Grupo | "todos")} aria-label="Filtrar por grupo">
+          <option value="todos">Todos os grupos</option>
+          {(Object.keys(GRUPOS) as Grupo[]).map((g) => (
+            <option key={g} value={g}>
+              {GRUPOS[g].nome}
+            </option>
+          ))}
+        </select>
+        <select value={nivel} onChange={(e) => setNivel(e.target.value as Nivel | "todos")} aria-label="Filtrar por nível">
+          <option value="todos">Todos os níveis</option>
+          {(Object.keys(NIVEIS) as Nivel[]).map((n) => (
+            <option key={n} value={n}>
+              {NIVEIS[n].nome}
+            </option>
+          ))}
+        </select>
+        <label className="check" style={{ marginTop: 0 }}>
+          <input type="checkbox" checked={soConvocaveis} onChange={(e) => setSoConvocaveis(e.target.checked)} />
+          Só quem atinge os {PONTOS_MINIMOS_ENTREVISTA} pts da entrevista (item 6.4.4)
+        </label>
+        {(grupo !== "todos" || nivel !== "todos" || soConvocaveis || busca) ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => {
+              setGrupo("todos");
+              setNivel("todos");
+              setSoConvocaveis(false);
+              setBusca("");
+            }}
+          >
+            Limpar filtros
+          </button>
+        ) : null}
+      </div>
+
       {linhas.length === 0 ? (
-        <div className="empty">Nenhum candidato encontrado com esse filtro.</div>
+        <div className="empty">Nenhum candidato encontrado com esses filtros.</div>
       ) : (
         <div className="tabela-wrap">
           <table className="tabela">

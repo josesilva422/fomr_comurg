@@ -332,7 +332,7 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .resumo-total .num{font-size:40px;font-weight:800;color:var(--brand);line-height:1}
 .resumo-total small{color:var(--muted)}
 
-.criterio{margin-bottom:22px}
+.criterio{margin-top:16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);padding:18px 20px}
 .criterio-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 .criterio-head h4{font-size:15px}
 .criterio-head .valor{font-size:14px;font-weight:700;color:var(--text)}
@@ -360,3 +360,22 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .login-passos{display:flex;gap:8px;justify-content:center;margin-bottom:22px}
 .login-passos span{width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
 .login-passos span.ativo{background:var(--brand);width:22px;border-radius:99px}
+
+/* ---- Painel: cabeçalho de pontuação em destaque (sempre escuro, nos dois temas) ---- */
+.resumo-destaque{display:flex;gap:20px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  background:linear-gradient(135deg,#132018,#0c1611);border:1px solid #24352b;border-radius:var(--radius);
+  padding:22px 26px;margin-bottom:22px;color:#eaf2ed}
+.resumo-destaque .nome{font-size:20px;font-weight:700;color:#ffffff;margin-bottom:4px}
+.resumo-destaque .sub{color:#9fb3a7;font-size:14px}
+.resumo-destaque .chips{margin-top:12px}
+.resumo-destaque .chip{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#dce9e2}
+.resumo-destaque-total{text-align:right}
+.resumo-destaque-total .num{font-size:44px;font-weight:800;line-height:1;background:linear-gradient(135deg,#4cc24a,#2f9a4e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.resumo-destaque-total small{color:#9fb3a7}
+
+.topico{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);padding:18px 20px;margin-top:16px}
+.topico h3{font-size:16px;margin-bottom:4px}
+.topico .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+
+.filtros-avancados{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filtros-avancados select{min-height:36px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--text);font-size:14px}

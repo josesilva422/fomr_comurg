@@ -17,6 +17,17 @@ interface ResumoBanco {
   nivel: Nivel;
   status: string;
   submetida_em: string | null;
+  curso_graduacao: string | null;
+  grau_graduacao: "bacharelado" | "licenciatura" | "tecnologico" | null;
+  instituicao_graduacao: string | null;
+  data_colacao: string | null;
+  formato_diploma: "fisico" | "digital" | null;
+  codigo_diploma_digital: string | null;
+  diploma_provisorio: boolean;
+  diploma_exterior: boolean;
+  cota_pcd: boolean;
+  cota_racial: boolean;
+  solicitou_isencao: boolean;
 }
 
 export default async function CandidatoPage({ params }: { params: Promise<{ id: string }> }) {

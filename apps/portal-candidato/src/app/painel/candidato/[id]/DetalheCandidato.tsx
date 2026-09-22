@@ -20,7 +20,21 @@ export interface Resumo {
   nivel: Nivel;
   status: string;
   submetida_em: string | null;
+  curso_graduacao: string | null;
+  grau_graduacao: "bacharelado" | "licenciatura" | "tecnologico" | null;
+  instituicao_graduacao: string | null;
+  data_colacao: string | null;
+  formato_diploma: "fisico" | "digital" | null;
+  codigo_diploma_digital: string | null;
+  diploma_provisorio: boolean;
+  diploma_exterior: boolean;
+  cota_pcd: boolean;
+  cota_racial: boolean;
+  solicitou_isencao: boolean;
 }
+
+const ROTULO_GRAU: Record<string, string> = { bacharelado: "Bacharelado", licenciatura: "Licenciatura", tecnologico: "Tecnólogo" };
+const PONTOS_MINIMOS_ENTREVISTA = 35; // edital, item 6.4.4
 
 interface Comparacao {
   campo: string;
@@ -60,29 +74,43 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
   const [avaliacao] = useState(avaliacaoInicial);
   const d = avaliacao.detalhamento;
 
+  const convocavel = avaliacao.habilitado && avaliacao.total >= PONTOS_MINIMOS_ENTREVISTA;
+
   return (
     <>
-      <div className="resumo-candidato">
+      <div className="resumo-destaque">
         <div>
-          <p className="eyebrow">Painel da Comissão</p>
-          <h2 style={{ marginBottom: 6 }}>{resumo.nome}</h2>
-          <p className="hint">
-            {fmtCPF(resumo.cpf)} · {resumo.email} · {resumo.telefone}
+          <p className="eyebrow" style={{ color: "#8fd6ab" }}>
+            Painel da Comissão
           </p>
-          <div className="chips" style={{ marginTop: 10 }}>
+          <div className="nome">{resumo.nome}</div>
+          <div className="sub">
+            {fmtCPF(resumo.cpf)} · {resumo.email} · {resumo.telefone}
+          </div>
+          <div className="chips">
             <span className="chip">
               {GRUPOS[resumo.grupo].nome} · {NIVEIS[resumo.nivel].nome}
             </span>
             <span className="chip">{resumo.status === "aguardando_isencao" ? "Aguardando isenção" : "Submetida"}</span>
             <span className="chip">Enviada em {fmtData(resumo.submetida_em)}</span>
+            {resumo.cota_pcd ? <span className="chip">PcD</span> : null}
+            {resumo.cota_racial ? <span className="chip">Cota racial</span> : null}
+            {resumo.solicitou_isencao ? <span className="chip">Isenção solicitada</span> : null}
           </div>
         </div>
-        <div className="resumo-total">
+        <div className="resumo-destaque-total">
           <span className={`pill ${avaliacao.habilitado ? "pill-ok" : "pill-err"}`} style={{ marginBottom: 8, display: "inline-flex" }}>
             {avaliacao.habilitado ? "Habilitado" : "Inabilitado"}
           </span>
           <div className="num">{avaliacao.total.toFixed(1)}</div>
           <small>de 60,0 pontos possíveis</small>
+          {avaliacao.habilitado ? (
+            <div style={{ marginTop: 6 }}>
+              <span className={`pill ${convocavel ? "pill-ok" : "pill-muted"}`}>
+                {convocavel ? `Atinge os ${PONTOS_MINIMOS_ENTREVISTA} pts da entrevista` : `Abaixo dos ${PONTOS_MINIMOS_ENTREVISTA} pts da entrevista`}
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -101,9 +129,44 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
         </div>
       ) : null}
 
+      <div className="topico">
+        <h3>Graduação (requisito de habilitação)</h3>
+        <p className="sub">Não pontua — é a base para poder concorrer. Itens 3.2 a 3.4 e 5.1 do edital.</p>
+        <dl>
+          <div className="kv">
+            <dt>Curso</dt>
+            <dd>
+              {resumo.curso_graduacao ?? "—"} {resumo.grau_graduacao ? `(${ROTULO_GRAU[resumo.grau_graduacao] ?? resumo.grau_graduacao})` : ""}
+            </dd>
+          </div>
+          <div className="kv">
+            <dt>Instituição</dt>
+            <dd>{resumo.instituicao_graduacao ?? "—"}</dd>
+          </div>
+          <div className="kv">
+            <dt>Data de colação de grau</dt>
+            <dd>{resumo.data_colacao ? fmtDataCurta(resumo.data_colacao) : "—"}</dd>
+          </div>
+          <div className="kv">
+            <dt>Diploma</dt>
+            <dd>
+              {resumo.formato_diploma === "digital" ? "Digital" : "Físico"}
+              {resumo.formato_diploma === "digital" && resumo.codigo_diploma_digital ? ` · código: ${resumo.codigo_diploma_digital}` : ""}
+              {resumo.diploma_provisorio ? " · certificado provisório (com histórico escolar)" : ""}
+              {resumo.diploma_exterior ? " · emitido no exterior (com revalidação)" : ""}
+            </dd>
+          </div>
+        </dl>
+        {resumo.grau_graduacao === "tecnologico" ? (
+          <p className="motivo" style={{ marginTop: 8 }}>
+            ⚠ Curso tecnológico — não é aceito em nenhum grupo ou nível (item 5.1.6).
+          </p>
+        ) : null}
+      </div>
+
       <div className="criterio">
         <div className="criterio-head">
-          <h4>Formação acadêmica adicional</h4>
+          <h4>Pós-graduação e títulos adicionais</h4>
           <span className="valor">
             {d.formacao.total.toFixed(1)} / {d.formacao.teto.toFixed(1)} pts
           </span>
