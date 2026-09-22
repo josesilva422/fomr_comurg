@@ -296,8 +296,11 @@ begin
   ---------------------------------------------------------------- auditoria
   select count(*) into n from interno.auditoria where ator_id = ua and entidade = 'publico.vinculos_declarados';
   t := t || pg_temp.igual((n > 0)::text, 'true', 'auditoria registra as ações de A com o ator');
-  select count(*) into n from interno.auditoria where entidade = 'publico.candidatos' and acao = 'INSERT';
-  t := t || pg_temp.igual(n::text, '3', 'auditoria dos três cadastros');
+  -- Conta só os cadastros DESTE teste (por e-mail), não o total histórico: auditoria é append-only e o banco
+  -- de desenvolvimento acumula testes manuais de sessões anteriores, então um total absoluto é frágil.
+  select count(*) into n from interno.auditoria
+    where entidade = 'publico.candidatos' and acao = 'INSERT' and dados_depois ->> 'email' in ('a@teste.local', 'b@teste.local', 'c@teste.local');
+  t := t || pg_temp.igual(n::text, '3', 'auditoria dos três cadastros deste teste');
   t := t || pg_temp.falha('update interno.auditoria set acao = ''x''', 'alterar auditoria', 'append-only');
   t := t || pg_temp.falha('delete from interno.auditoria', 'apagar auditoria', 'append-only');
   t := t || pg_temp.falha('truncate interno.auditoria', 'truncar auditoria', 'append-only');
