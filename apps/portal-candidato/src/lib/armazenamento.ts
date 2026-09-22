@@ -2,11 +2,12 @@
 // Hoje grava no Supabase Storage (bucket privado `documentos`). Para trocar de destino (ex.: um bucket S3
 // da COMURG), basta reimplementar `enviarArquivo`: o restante do app não muda.
 import type { createClient } from "./supabase/client";
-import type { TipoDocumento } from "./tipos-inscricao";
+import { exigeSomentePdf, type TipoDocumento } from "./tipos-inscricao";
 import { traduzirErro } from "./validacao";
 
 export const LIMITE_BYTES = 10 * 1024 * 1024; // mesmo limite do banco e do bucket
 const EXTENSOES = ["pdf", "jpg", "jpeg", "png"];
+const EXTENSOES_PDF = ["pdf"];
 
 export interface ReferenciaDocumento {
   titulo_id?: string;
@@ -51,12 +52,15 @@ export async function enviarArquivo(
   arquivo: File,
   referencia: ReferenciaDocumento = {},
 ): Promise<string | null> {
+  const somentePdf = exigeSomentePdf(tipo);
   const nome = `“${arquivo.name}”`;
   if (arquivo.size === 0) return `${nome}: arquivo vazio.`;
   if (arquivo.size > LIMITE_BYTES) return `${nome}: o arquivo passa do limite de 10 MB. Reduza o tamanho e envie de novo.`;
-  if (!EXTENSOES.includes(extensao(arquivo.name))) return `${nome}: formato não aceito. Envie PDF, JPG ou PNG.`;
+  if (!(somentePdf ? EXTENSOES_PDF : EXTENSOES).includes(extensao(arquivo.name)))
+    return somentePdf ? `${nome}: este documento é usado na análise curricular e só é aceito em PDF.` : `${nome}: formato não aceito. Envie PDF, JPG ou PNG.`;
   const mime = await detectarMime(arquivo);
   if (!mime) return `${nome}: o conteúdo não parece ser um PDF, JPG ou PNG válido.`;
+  if (somentePdf && mime !== "application/pdf") return `${nome}: este documento é usado na análise curricular e só é aceito em PDF.`;
 
   const sha256 = await sha256Hex(arquivo);
   const ext = mime === "application/pdf" ? "pdf" : mime === "image/png" ? "png" : "jpg";

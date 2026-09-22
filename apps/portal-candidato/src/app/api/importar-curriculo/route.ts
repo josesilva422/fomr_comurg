@@ -3,14 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { lerCurriculo } from "@/lib/openai";
 
 const LIMITE_BYTES = 10 * 1024 * 1024;
-type MimeAceito = "application/pdf" | "image/jpeg" | "image/png";
 
-async function detectarMime(bytes: Uint8Array): Promise<MimeAceito | null> {
+// O currículo (curriculo_anexo_v) entra na análise curricular — só PDF, decisão do responsável em
+// 22/09/2026 (mesma regra aplicada a diploma, certificados e comprovantes de experiência; ver
+// tipos-inscricao.ts:exigeSomentePdf e a migração 20260922130000_pdf_obrigatorio_analise_curricular.sql).
+async function ehPdf(bytes: Uint8Array): Promise<boolean> {
   const inicio = String.fromCharCode(...bytes.slice(0, 8));
-  if (inicio.includes("%PDF-")) return "application/pdf";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
-  return null;
+  return inicio.includes("%PDF-");
 }
 
 async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
@@ -38,12 +37,11 @@ export async function POST(request: NextRequest) {
 
   const buffer = await arquivo.arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  const mime = await detectarMime(bytes);
-  if (!mime) return NextResponse.json({ erro: "O conteúdo não parece ser um PDF, JPG ou PNG válido." }, { status: 400 });
+  if (!(await ehPdf(bytes))) return NextResponse.json({ erro: "O currículo é usado na análise curricular e só é aceito em PDF." }, { status: 400 });
+  const mime = "application/pdf" as const;
 
   const sha256 = await sha256Hex(buffer);
-  const ext = mime === "application/pdf" ? "pdf" : mime === "image/png" ? "png" : "jpg";
-  const caminho = `${inscricao.id}/curriculo_anexo_v/${crypto.randomUUID()}.${ext}`;
+  const caminho = `${inscricao.id}/curriculo_anexo_v/${crypto.randomUUID()}.pdf`;
 
   const { error: erroUpload } = await supabase.storage.from("documentos").upload(caminho, bytes, { contentType: mime, upsert: false });
   if (erroUpload) return NextResponse.json({ erro: `Não foi possível salvar o arquivo: ${erroUpload.message}` }, { status: 500 });

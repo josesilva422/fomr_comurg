@@ -212,15 +212,14 @@ export interface DadosCurriculo {
   observacoes: string | null;
 }
 
-export async function lerCurriculo(args: { bytesBase64: string; mime: "application/pdf" | "image/jpeg" | "image/png"; nomeArquivo: string }): Promise<DadosCurriculo> {
+// O currículo entra na análise curricular: só PDF (decisão do responsável em 22/09/2026, mesma regra do
+// diploma/certificados — ver tipos-inscricao.ts:exigeSomentePdf), então sempre `input_file`, nunca imagem.
+export async function lerCurriculo(args: { bytesBase64: string; mime: "application/pdf"; nomeArquivo: string }): Promise<DadosCurriculo> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY não configurada no servidor.");
   const modelo = process.env.OPENAI_EXTRACTION_MODEL || "gpt-4o-mini";
 
-  const conteudoArquivo =
-    args.mime === "application/pdf"
-      ? { type: "input_file", filename: args.nomeArquivo, file_data: `data:${args.mime};base64,${args.bytesBase64}` }
-      : { type: "input_image", image_url: `data:${args.mime};base64,${args.bytesBase64}` };
+  const conteudoArquivo = { type: "input_file", filename: args.nomeArquivo, file_data: `data:${args.mime};base64,${args.bytesBase64}` };
 
   const resposta = await fetch(RESPONSES_URL, {
     method: "POST",

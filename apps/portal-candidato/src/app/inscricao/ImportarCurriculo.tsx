@@ -39,14 +39,14 @@ export function ImportarCurriculo({ aoLido }: { aoLido: (dados: DadosCurriculo) 
     <div className="panel" style={{ marginBottom: 22 }}>
       <h3 style={{ marginTop: 0 }}>Tem um currículo pronto?</h3>
       <p className="hint">
-        Envie o seu currículo (PDF, JPG ou PNG) e a IA tenta preencher automaticamente os títulos, cursos e
+        Envie o seu currículo em <b>PDF</b> e a IA tenta preencher automaticamente os títulos, cursos e
         vínculos de experiência abaixo — <b>sempre editáveis</b>: nada é salvo até você conferir e clicar em
         &quot;Salvar&quot; em cada item. Também conta como o envio do currículo pedido no Anexo V.
       </p>
       <button type="button" className="btn" disabled={enviando} onClick={() => entrada.current?.click()}>
         {enviando ? <span className="spin" aria-hidden /> : null} {enviando ? "Lendo currículo…" : "Enviar currículo"}
       </button>
-      <input ref={entrada} type="file" className="sr-only" tabIndex={-1} accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => void selecionar(e.target.files?.[0])} />
+      <input ref={entrada} type="file" className="sr-only" tabIndex={-1} accept=".pdf" onChange={(e) => void selecionar(e.target.files?.[0])} />
       {erro ? (
         <p className="err" role="alert" style={{ marginTop: 8 }}>
           {erro}

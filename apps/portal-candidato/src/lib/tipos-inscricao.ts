@@ -51,6 +51,37 @@ export const ROTULO_DOCUMENTO: Record<TipoDocumento, string> = {
   curriculo_anexo_v: "Currículo (Anexo V)",
 };
 
+/**
+ * Documentos que entram na análise curricular (habilitação + pontuação do Anexo I) só podem ser PDF —
+ * decisão do responsável em 22/09/2026. Os demais (identidade, CPF, laudo PcD, autodeclaração racial,
+ * comprovante de Pix, requerimento de isenção) continuam aceitando PDF, JPG ou PNG. Mesma lista aplicada
+ * no banco (migração `20260922130000_pdf_obrigatorio_analise_curricular.sql`) — mudar aqui sem mudar lá
+ * (ou vice-versa) quebra a consistência entre a mensagem de erro do formulário e o que o backend aceita.
+ */
+const TIPOS_PDF_OBRIGATORIO = new Set<TipoDocumento>([
+  "diploma_graduacao",
+  "diploma_pos",
+  "diploma_mestrado",
+  "diploma_doutorado",
+  "certificado_curso",
+  "certificacao_profissional",
+  "experiencia_ctps",
+  "experiencia_declaracao",
+  "experiencia_contrato",
+  "experiencia_publica",
+  "experiencia_autonomo",
+  "art_rrt_acervo",
+  "declaracao_lideranca",
+  "historico_escolar",
+  "revalidacao_diploma",
+  "traducao_juramentada",
+  "curriculo_anexo_v",
+]);
+
+export function exigeSomentePdf(tipo: TipoDocumento): boolean {
+  return TIPOS_PDF_OBRIGATORIO.has(tipo);
+}
+
 export interface Documento {
   id: string;
   inscricao_id: string;

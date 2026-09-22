@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { enviarArquivo, removerDocumento, tamanhoLegivel, type ReferenciaDocumento } from "@/lib/armazenamento";
-import { ROTULO_DOCUMENTO, type Documento, type TipoDocumento } from "@/lib/tipos-inscricao";
+import { exigeSomentePdf, ROTULO_DOCUMENTO, type Documento, type TipoDocumento } from "@/lib/tipos-inscricao";
 
 interface Props {
   inscricaoId: string;
@@ -57,6 +57,7 @@ export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obri
   }
 
   const mostrarBotao = multiplo || docs.length === 0;
+  const somentePdf = exigeSomentePdf(tipoEscolhido || tipo);
 
   return (
     <div className={`upload${erro ? " invalid" : ""}`}>
@@ -102,7 +103,7 @@ export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obri
                 <b>Selecionar arquivo</b> {multiplo ? "(pode enviar mais de um)" : ""}
               </>
             )}
-            <small>PDF, JPG ou PNG · até 10 MB</small>
+            <small>{somentePdf ? "PDF · até 10 MB" : "PDF, JPG ou PNG · até 10 MB"}</small>
           </span>
         </button>
       ) : null}
@@ -111,7 +112,7 @@ export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obri
         type="file"
         className="sr-only"
         tabIndex={-1}
-        accept=".pdf,.jpg,.jpeg,.png"
+        accept={somentePdf ? ".pdf" : ".pdf,.jpg,.jpeg,.png"}
         multiple={multiplo}
         onChange={(e) => void aoEscolher(e.target.files)}
       />
