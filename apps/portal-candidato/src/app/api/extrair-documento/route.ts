@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { verificarDocumento, type CampoDeclarado } from "@/lib/openai";
+import { ROTULO_DOCUMENTO, type TipoDocumento } from "@/lib/tipos-inscricao";
 
 // Só a Comissão pode disparar isto (mesma checagem do painel.*). O resultado é sempre um RASCUNHO de
 // leitura, nunca uma decisão — a Comissão confirma ou corrige (CLAUDE.md, seção 9).
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   const { data: doc, error: erroDoc } = await supabase
     .from("documentos")
-    .select("storage_path, nome_original, mime")
+    .select("storage_path, nome_original, mime, tipo")
     .eq("id", documentoId)
     .single();
   if (erroDoc || !doc) return NextResponse.json({ erro: "Documento não encontrado ou sem permissão." }, { status: 404 });
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
       bytesBase64,
       mime: doc.mime as "application/pdf" | "image/jpeg" | "image/png",
       nomeArquivo: doc.nome_original,
+      tipoEsperado: ROTULO_DOCUMENTO[doc.tipo as TipoDocumento],
       camposDeclarados: (campos as CampoDeclarado[] | null) ?? [],
     });
 

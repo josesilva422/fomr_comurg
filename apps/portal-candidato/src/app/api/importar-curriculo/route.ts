@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
   const sha256 = await sha256Hex(buffer);
   const caminho = `${inscricao.id}/curriculo_anexo_v/${crypto.randomUUID()}.pdf`;
 
+  // Cada envio de currículo vira um documento novo (histórico nunca é apagado), mas só o mais recente
+  // interessa pra Comissão revisar — os anteriores ficam marcados como inativos (mesmo soft-delete usado
+  // quando o candidato remove um documento manualmente), sem sumir do banco.
+  await supabase.from("documentos").update({ ativo: false }).eq("inscricao_id", inscricao.id).eq("tipo", "curriculo_anexo_v").eq("ativo", true);
+
   const { error: erroUpload } = await supabase.storage.from("documentos").upload(caminho, bytes, { contentType: mime, upsert: false });
   if (erroUpload) return NextResponse.json({ erro: `Não foi possível salvar o arquivo: ${erroUpload.message}` }, { status: 500 });
 

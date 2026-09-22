@@ -13,7 +13,7 @@
 // 22/09/2026. Testado pela primeira vez em 22/09/2026 com a chave fornecida pelo responsável.
 
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
-const VERSAO_PROMPT = "verificacao-documento-v4-2026-09-22";
+const VERSAO_PROMPT = "verificacao-documento-v5-2026-09-22";
 
 export interface CampoDeclarado {
   campo: string;
@@ -24,6 +24,24 @@ const SCHEMA_VERIFICACAO = {
   type: "object",
   properties: {
     legivel: { type: "boolean", description: "false se o documento estiver ilegível, cortado ou genérico demais" },
+    tipo_documento: {
+      type: "object",
+      description:
+        "Checagem PRIORITÁRIA: o arquivo anexado é mesmo o tipo de documento esperado (ex.: diploma de doutorado, e não um certificado de curso qualquer)? Faça essa checagem ANTES de entrar no detalhe dos campos.",
+      properties: {
+        o_que_e: {
+          type: "string",
+          description: "Descreva objetivamente o que esse documento realmente é, pelo que está escrito nele (ex.: 'Certificado de conclusão do curso Excel Avançado, 40 horas, emitido pela Alura em 2019' ou 'Diploma de Doutorado em Engenharia Mecânica pela UFG, colação em março de 2020').",
+        },
+        bate_com_esperado: {
+          type: "boolean",
+          description: "true se esse documento é claramente do tipo esperado (indicado no início do prompt e nos campos declarados abaixo); false se é claramente outro tipo de documento (ex.: pediram diploma de doutorado e o arquivo é um certificado de curso curto).",
+        },
+        observacao: { type: ["string", "null"], description: "Se bate_com_esperado for false, explique objetivamente a diferença. Null se bater." },
+      },
+      required: ["o_que_e", "bate_com_esperado", "observacao"],
+      additionalProperties: false,
+    },
     texto_extraido: {
       type: "string",
       description:
@@ -57,16 +75,24 @@ const SCHEMA_VERIFICACAO = {
     },
     confianca_geral: { type: "number", description: "0 a 1" },
   },
-  required: ["legivel", "texto_extraido", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
+  required: ["legivel", "tipo_documento", "texto_extraido", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
   additionalProperties: false,
 } as const;
 
-function montarPrompt(campos: CampoDeclarado[]): string {
+function montarPrompt(campos: CampoDeclarado[], tipoEsperado: string): string {
   const lista = campos.map((c, i) => `${i + 1}. ${c.campo}: "${c.valor}"`).join("\n");
-  return `Você está conferindo um documento anexado a uma inscrição do PSS COMURG 2026. Faça DUAS coisas com este
-documento, nesta ordem.
+  return `Você está conferindo um documento anexado a uma inscrição do PSS COMURG 2026. O candidato anexou este
+arquivo especificamente como comprovante de: **${tipoEsperado}**. Faça TRÊS coisas com este documento, nesta ordem.
 
-1) TRANSCRIÇÃO LITERAL COMPLETA, em "texto_extraido": leia o documento inteiro (todas as páginas) e transcreva
+1) TIPO DO DOCUMENTO (campo "tipo_documento") — a checagem mais importante, faça ANTES de tudo: olhe o documento
+inteiro e identifique objetivamente o que ele É (em "o_que_e"), só pelo que está escrito nele. Depois responda em
+"bate_com_esperado": esse documento é realmente um(a) "${tipoEsperado}"? Um documento de um tipo completamente
+diferente do esperado — por exemplo, a pessoa declarou um doutorado e anexou um certificado de curso de 40 horas,
+ou declarou uma certificação profissional e anexou uma CTPS — deve ser marcado como "bate_com_esperado": false,
+mesmo que o restante do documento pareça legítimo. Isso é diferente de "confere: nao" nas comparações abaixo: aqui
+o problema é o tipo do documento como um todo, não um campo específico.
+
+2) TRANSCRIÇÃO LITERAL COMPLETA, em "texto_extraido": leia o documento inteiro (todas as páginas) e transcreva
 fielmente tudo o que está explícito nele — campos preenchidos, nomes, números de documento, datas, cargos,
 períodos, valores, assinaturas, carimbos, timbre, códigos de verificação/QR, observações e qualquer outro dado
 visível e relevante. Não resuma, não traduza, não deduza nada com bom senso ou conhecimento externo — só o que
@@ -74,8 +100,10 @@ está escrito ou visualmente representado no documento. Se alguma parte estiver 
 assinatura, sem carimbo, sem papel timbrado, ou com sinal de edição, diga isso dentro do texto, no ponto
 correspondente (ou em "observacoes_gerais", se for algo geral do documento como um todo).
 
-2) COMPARAÇÃO CAMPO A CAMPO: o candidato DECLAROU os seguintes dados no formulário (não assuma que estão certos
-— é isso que você vai checar contra o que você leu no passo 1):
+3) COMPARAÇÃO CAMPO A CAMPO: o candidato DECLAROU os seguintes dados no formulário (não assuma que estão certos
+— é isso que você vai checar contra o que você leu no passo 2). Se o documento for de um tipo completamente
+diferente do esperado (passo 1), ainda assim tente comparar os campos com o que o documento realmente diz —
+provavelmente a maioria vai dar "nao" ou "nao_mencionado", e isso é esperado:
 
 ${lista}
 
@@ -104,6 +132,7 @@ algo concreto e descreva em "detalhes"; na dúvida, ou se o documento parecer un
 
 export interface ResultadoVerificacao {
   legivel: boolean;
+  tipo_documento: { o_que_e: string; bate_com_esperado: boolean; observacao: string | null };
   texto_extraido: string;
   comparacoes: { campo: string; documento_diz: string | null; pagina: number | null; confere: "sim" | "nao" | "nao_mencionado" }[];
   observacoes_gerais: string | null;
@@ -115,6 +144,8 @@ export async function verificarDocumento(args: {
   bytesBase64: string;
   mime: "application/pdf" | "image/jpeg" | "image/png";
   nomeArquivo: string;
+  /** Rótulo do que esse documento deveria ser (ex.: "Diploma de doutorado", "Certificado de curso"). */
+  tipoEsperado: string;
   camposDeclarados: CampoDeclarado[];
 }): Promise<{ resultado: ResultadoVerificacao; modelo: string; versaoPrompt: string }> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -131,7 +162,7 @@ export async function verificarDocumento(args: {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: modelo,
-      input: [{ role: "user", content: [conteudoArquivo, { type: "input_text", text: montarPrompt(args.camposDeclarados) }] }],
+      input: [{ role: "user", content: [conteudoArquivo, { type: "input_text", text: montarPrompt(args.camposDeclarados, args.tipoEsperado) }] }],
       text: { format: { type: "json_schema", name: "verificacao_documento", schema: SCHEMA_VERIFICACAO, strict: true } },
     }),
   });

@@ -46,9 +46,10 @@ interface VerificacaoIA {
   legivel: boolean;
   comparacoes: Comparacao[];
   observacoes_gerais: string | null;
-  // Opcionais: extrações feitas antes de 22/09/2026 (versões v2/v3 do prompt) não têm esses campos.
+  // Opcionais: extrações feitas antes de 22/09/2026 (versões v2/v3/v4 do prompt) não têm esses campos.
   indicios_adulteracao?: { suspeita: boolean; detalhes: string | null };
   texto_extraido?: string;
+  tipo_documento?: { o_que_e: string; bate_com_esperado: boolean; observacao: string | null };
   confianca_geral: number;
 }
 interface Extracao {
@@ -363,6 +364,18 @@ function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
       {erro ? <p className="motivo">{erro}</p> : null}
       {extracao ? (
         <div style={{ marginTop: 12 }}>
+          {extracao.json_extraido.tipo_documento ? (
+            extracao.json_extraido.tipo_documento.bate_com_esperado ? (
+              <p className="motivo" style={{ color: "var(--ok-text)" }}>
+                ✓ O documento confere com o tipo esperado ({ROTULO_DOCUMENTO[doc.tipo]}): {extracao.json_extraido.tipo_documento.o_que_e}
+              </p>
+            ) : (
+              <p className="motivo" style={{ fontWeight: 700 }}>
+                ⚠ Este documento NÃO parece ser {ROTULO_DOCUMENTO[doc.tipo].toLowerCase()} — parece ser: {extracao.json_extraido.tipo_documento.o_que_e}
+                {extracao.json_extraido.tipo_documento.observacao ? ` (${extracao.json_extraido.tipo_documento.observacao})` : ""}
+              </p>
+            )
+          ) : null}
           {!extracao.json_extraido.legivel ? <p className="motivo">⚠ A IA sinalizou que este documento está ilegível ou insuficiente para conferência.</p> : null}
           {extracao.json_extraido.indicios_adulteracao?.suspeita ? (
             <p className="motivo">
