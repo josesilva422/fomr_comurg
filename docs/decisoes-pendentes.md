@@ -7,7 +7,7 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | # | Decisão | Quem / quando | Onde está refletida |
 |---|---|---|---|
 | D1 | **O candidato escolhe o Grupo** (e o Nível) | Responsável, 21/09/2026 | `inscricoes.grupo/nivel`, `cursos_aceitos` |
-| D2 | **Plano Free do Supabase, sem Pro** (US$ 0). Decisão firme: não haverá plano Pro. | Responsável, 21/09/2026 | Riscos assumidos e mitigações em R1 a R4 (abaixo) |
+| D2 | **Plano Free do Supabase, sem Pro** (US$ 0). Decisão firme: não haverá plano Pro. | Responsável, 21/09/2026 | Riscos assumidos e mitigações em R1 a R5 (abaixo) |
 | D3 | Foco atual: **formulário e cadastro**; demais módulos depois | Responsável, 21/09/2026 | escopo da Fase 1 |
 | D4 | Identificação do candidato: **código por e-mail, sem senha** (proposta do assistente, aceita por "seguir como você deseja") | 21/09/2026 | Auth OTP; **exige SMTP próprio** (ver abaixo) |
 | D5 | **Envio definitivo**: ao clicar em "Enviar solicitação" a inscrição fica selada; o candidato não altera nem apaga nada, apenas consulta (direito de acesso, LGPD art. 18); só a Comissão terá acesso, com auditoria. Antes do envio o candidato trabalha em **rascunho** e pode voltar depois. | Responsável, 21/09/2026 | `minha_inscricao_editavel_id()` (só `rascunho`), política de `candidatos`; resolve N4 |
@@ -54,6 +54,7 @@ Valores do Free conferidos em supabase.com/pricing em 21/09/2026: banco 500 MB, 
 | R2 | **1 GB de arquivos** (cerca de 50 candidatos com ~20 MB cada, estimativa a validar) | Quando lotar, os uploads passam a falhar e candidatos ficam sem conseguir se inscrever (problema de isonomia) | Reduzir o limite por arquivo, orientar PDFs leves, e se o número de candidatos passar de ~100, **guardar arquivos fora do Supabase** (armazenamento da COMURG ou serviço S3-compatível) | **Depende do nº de candidatos esperado** |
 | R3 | **Pausa por inatividade** (1 semana) | Portal fora do ar sem aviso | Agendar uma chamada diária ao banco (keep-alive) e monitorar | A fazer |
 | R4 | **5 GB/mês de tráfego** | Comissão abrindo os mesmos arquivos várias vezes consome a cota | Links assinados de curta duração, miniaturas e cache; monitorar consumo | A fazer na fase do painel |
+| R5 | **"Prevent use of leaked passwords" (checagem HaveIBeenPwned) não disponível no Free** — `get_advisors` acusa `auth_leaked_password_protection` (WARN); a tela de "Attack Protection" mostra "DISABLED" e manda configurar no provedor de e-mail, mas o toggle de verdade não fica disponível no plano Free | Uma senha do painel vazada em outro serviço e reaproveitada aqui não seria bloqueada no cadastro/troca | Nenhuma (depende do Pro). Mitigado por hoje só existirem 2 contas, com senhas fortes e aleatórias geradas por mim (não reaproveitadas), e pelo login do painel exigir também o código por e-mail (D13) — uma senha vazada sozinha não entra | **Risco aceito**, responsável, 22/09/2026 — revisitar se e quando entrar mais gente na Comissão com senha própria |
 
 O que **não** depende do plano e já está pronto: RLS em todas as tabelas, permissões por coluna, inscrição selada após o envio, trava de prazo no servidor, bucket privado, auditoria imutável e schema `interno` fora da API.
 
