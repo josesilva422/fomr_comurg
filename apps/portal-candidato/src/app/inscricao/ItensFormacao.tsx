@@ -297,7 +297,7 @@ export function CartaoCurso({
           <Campo id={`c-cred-${numero}`} rotulo="Número da credencial ativa" obrigatorio erro={erros.cred}>
             <input id={`c-cred-${numero}`} value={cred} onChange={(e) => setCred(e.target.value)} />
           </Campo>
-          <Campo id={`c-cod-${numero}`} rotulo="Código de verificação" obrigatorio erro={erros.codigo} dica="Certificação vencida ou sem credencial e código válidos não pontua (item 5.2.3).">
+          <Campo id={`c-cod-${numero}`} rotulo="Código de verificação" obrigatorio erro={erros.codigo} dica="Certificação vencida ou sem credencial e código válidos não pontua.">
             <input id={`c-cod-${numero}`} value={codigo} onChange={(e) => setCodigo(e.target.value)} />
           </Campo>
         </div>

@@ -77,6 +77,8 @@ button{font:inherit;color:inherit}
 .rail-compact-top span{color:var(--muted)}
 .bar{height:6px;border-radius:99px;background:var(--line);margin-top:8px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--brand);width:0;transition:width .25s}
+.rail-select{display:block;margin-top:10px}
+.rail-select select{width:100%;min-height:40px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--text);font-size:14px;padding:6px 10px}
 .rail-list,.rail-vaga,.rail-help{display:none}
 @media(min-width:960px){
   .rail-compact{display:none}
@@ -107,7 +109,7 @@ button{font:inherit;color:inherit}
 .eyebrow{font-size:13px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .step-head h2{font-size:26px}
 .lead{color:var(--muted);margin-top:8px;max-width:64ch}
-.card h3{font-size:18px;margin:30px 0 4px}
+.card h3{font-size:18px;font-weight:800;margin:30px 0 4px}
 .card h3:first-of-type{margin-top:0}
 .sub{color:var(--muted);font-size:14px;margin-bottom:14px}
 .divider{border:0;border-top:1px solid var(--line);margin:28px 0 0}
@@ -253,7 +255,7 @@ summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px}
 /* Pix */
 .pix{display:grid;gap:16px;border:1.5px solid var(--brand);border-radius:var(--radius);padding:18px;background:var(--brand-soft)}
 @media(min-width:640px){.pix{grid-template-columns:1.2fr 1fr}}
-.pix-key{font-size:26px;font-weight:800;letter-spacing:.5px;font-variant-numeric:tabular-nums;word-break:break-all}
+.pix-key{font-size:18px;font-weight:800;letter-spacing:.2px;font-variant-numeric:tabular-nums;word-break:break-all;line-height:1.3}
 .pix small{display:block;color:var(--muted);font-size:13px}
 .pix .valor{font-size:26px;font-weight:800}
 .steps-list{margin:8px 0 0;padding-left:20px;font-size:14px}

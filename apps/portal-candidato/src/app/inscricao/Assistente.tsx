@@ -129,6 +129,25 @@ export function Assistente(props: DadosIniciais) {
           <div className="bar">
             <i style={{ width: `${(passo / 7) * 100}%` }} />
           </div>
+          <label className="rail-select">
+            <span className="sr-only">Ir para outra etapa</span>
+            <select
+              value={passo}
+              onChange={(e) => irPara(Number(e.target.value))}
+              aria-label="Navegar entre as etapas da inscrição"
+            >
+              {PASSOS.map((nome, i) => {
+                const n = i + 1;
+                const st = statusDoPasso(n);
+                const bloqueado = n > 1 && !candidato;
+                return (
+                  <option key={nome} value={n} disabled={bloqueado}>
+                    {n}. {nome} — {st.texto}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
         </div>
         <ol className="rail-list">
           {PASSOS.map((nome, i) => {

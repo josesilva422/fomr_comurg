@@ -11,9 +11,9 @@ const fmtData = (iso: string | null) => (iso ? iso.split("-").reverse().join("/"
 
 const DECLARACOES = [
   "Declaro atender aos requisitos gerais do edital: nacionalidade brasileira ou portuguesa com direitos políticos, quitação eleitoral e militar (quando aplicável), 18 anos completos até o encerramento das inscrições, ausência de impedimento legal e de acúmulo indevido de cargos.",
-  "Declaro que informei todos os meus vínculos profissionais, inclusive os simultâneos, e estou ciente de que omitir vínculo para pontuar indevidamente é falsidade (itens 5.4.3 e 14.3).",
-  "Declaro que os documentos enviados são autênticos. Estou ciente de que falsidade documental, em qualquer fase, leva à eliminação imediata e à comunicação às autoridades (item 5.5.4).",
-  "Estou ciente de que não é permitido incluir título ou experiência depois do encerramento das inscrições (item 5.5.3) e de que a taxa não é restituível (item 4.11).",
+  "Declaro que informei todos os meus vínculos profissionais, inclusive os simultâneos, e estou ciente de que omitir vínculo para pontuar indevidamente é falsidade.",
+  "Declaro que os documentos enviados são autênticos. Estou ciente de que falsidade documental, em qualquer fase, leva à eliminação imediata e à comunicação às autoridades.",
+  "Estou ciente de que não é permitido incluir título ou experiência depois do encerramento das inscrições e de que a taxa não é restituível.",
   "Estou ciente de que meus dados pessoais e sensíveis serão tratados apenas para este processo seletivo, conforme a LGPD, e de que a decisão final sobre habilitação e pontuação é sempre de pessoas da Comissão Organizadora.",
 ];
 

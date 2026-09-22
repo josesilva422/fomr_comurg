@@ -93,7 +93,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
               <input id="dataLaudo" type="date" value={dataLaudo} onChange={(e) => setDataLaudo(e.target.value)} />
               <p className="hint">
                 O laudo deve ter sido emitido em até 12 meses antes do encerramento das inscrições, ou seja, a partir de
-                07/10/2025 (item 10.5).
+                07/10/2025.
               </p>
               {erros.dataLaudo ? (
                 <p className="err" role="alert">
@@ -173,7 +173,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
             <div className="alert alert-warn" style={{ margin: 0 }}>
               <p>
                 A resposta ao pedido sai até <b>09/10/2026</b>. Se for indeferido depois do encerramento das inscrições, <b>a
-                inscrição é desconsiderada</b> (item 4.10.2). Se preferir não correr esse risco, pague a taxa normalmente.
+                inscrição é desconsiderada</b>. Se preferir não correr esse risco, pague a taxa normalmente.
               </p>
             </div>
           </div>

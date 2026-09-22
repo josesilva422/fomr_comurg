@@ -235,14 +235,14 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
       {grau === "tecnologico" ? (
         <div className="alert alert-err">
           <p>
-            <b>Curso tecnológico não é aceito</b> em nenhum grupo ou nível (item 5.1.6). Você pode continuar, mas a
+            <b>Curso tecnológico não é aceito</b> em nenhum grupo ou nível. Você pode continuar, mas a
             habilitação tende a ser negada na análise.
           </p>
         </div>
       ) : null}
       {formato === "digital" ? (
         <div className="reveal">
-          <Campo id="codigo" rotulo="Código de autenticação ou endereço do QR Code" obrigatorio erro={erros.codigo} dica="Diplomas digitais emitidos a partir de 2022 sem código válido são inabilitados (item 5.1.2). A Comissão confere no portal de Diplomas Digitais do MEC.">
+          <Campo id="codigo" rotulo="Código de autenticação ou endereço do QR Code" obrigatorio erro={erros.codigo} dica="Diplomas digitais emitidos a partir de 2022 sem código válido são inabilitados. A Comissão confere no portal de Diplomas Digitais do MEC.">
             <input id="codigo" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Código ou link de validação" />
           </Campo>
         </div>
@@ -253,7 +253,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
           inscricaoId={insc.id}
           tipo="diploma_graduacao"
           rotulo="Diploma de graduação (frente e verso)"
-          dica="Legível, com nome, curso, data de colação, instituição e assinatura do responsável institucional (item 5.1.1)."
+          dica="Legível, com nome, curso, data de colação, instituição e assinatura do responsável institucional."
           obrigatorio
           multiplo
           docs={docs("diploma_graduacao")}
@@ -272,7 +272,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
               inscricaoId={insc.id}
               tipo="historico_escolar"
               rotulo="Histórico escolar com registro de colação de grau"
-              dica="Precisa ter o registro de colação de grau e o carimbo da instituição (item 5.1.4)."
+              dica="Precisa ter o registro de colação de grau e o carimbo da instituição."
               obrigatorio
               multiplo
               docs={docs("historico_escolar")}
@@ -290,7 +290,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
               inscricaoId={insc.id}
               tipo="revalidacao_diploma"
               rotulo="Comprovante de revalidação do diploma"
-              dica="Revalidação por universidade pública brasileira (item 5.1.5)."
+              dica="Revalidação por universidade pública brasileira."
               obrigatorio
               multiplo
               docs={docs("revalidacao_diploma")}
@@ -300,7 +300,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
               inscricaoId={insc.id}
               tipo="traducao_juramentada"
               rotulo="Tradução juramentada"
-              dica="Documentos em língua estrangeira exigem tradução juramentada (item 5.5.2)."
+              dica="Documentos em língua estrangeira exigem tradução juramentada."
               obrigatorio
               multiplo
               docs={docs("traducao_juramentada")}

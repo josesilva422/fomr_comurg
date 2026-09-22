@@ -75,9 +75,7 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
       <div className="pix">
         <div>
           <small>Chave Pix ({dados?.tipo_chave === "email" ? "e-mail" : dados?.tipo_chave ?? "…"})</small>
-          <div className="pix-key" style={{ fontSize: 22, wordBreak: "break-all" }}>
-            {dados ? dados.pix_chave : "Carregando…"}
-          </div>
+          <div className="pix-key">{dados ? dados.pix_chave : "Carregando…"}</div>
           <small style={{ marginTop: 6 }}>Favorecido: {dados?.favorecido ?? "COMURG"} — Companhia de Urbanização de Goiânia</small>
           <button type="button" className="btn btn-sm" style={{ marginTop: 12 }} onClick={() => void copiar()} disabled={!dados}>
             {copiado ? "Copiado!" : "Copiar chave"}
@@ -86,7 +84,7 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
         <div>
           <small>Valor</small>
           <div className="valor">{dados ? brl(dados.valor_centavos) : "R$ 100,00"}</div>
-          <small style={{ marginTop: 6 }}>Sem restituição, exceto cancelamento total do certame (item 4.11).</small>
+          <small style={{ marginTop: 6 }}>Sem restituição, exceto em caso de cancelamento total do certame.</small>
         </div>
       </div>
 
@@ -94,10 +92,10 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
         <div>
           <p>
             <b>O Pix precisa ser feito por você.</b> Use uma conta de sua titularidade. Pagamento feito por terceiros não é
-            aceito (item 4.9.1).
+            aceito.
           </p>
           <p>
-            Só valem comprovantes com data e hora entre <b>24/09/2026 e 07/10/2026</b> (item 4.9.5).
+            Só valem comprovantes com data e hora entre <b>24/09/2026 e 07/10/2026</b>.
           </p>
         </div>
       </div>
@@ -125,7 +123,7 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
             inscricaoId={insc.id}
             tipo="comprovante_pix"
             rotulo="Comprovante de pagamento"
-            dica="PDF, JPG ou PNG legível. Sem o comprovante, a inscrição não é concluída (item 4.9.3), a não ser que você tenha pedido isenção."
+            dica="PDF, JPG ou PNG legível. Sem o comprovante, a inscrição não é concluída, a não ser que você tenha pedido isenção."
             obrigatorio={!insc.solicitou_isencao}
             docs={docsDoTipo(ctx.documentos, "comprovante_pix")}
             aoMudar={ctx.recarregar}

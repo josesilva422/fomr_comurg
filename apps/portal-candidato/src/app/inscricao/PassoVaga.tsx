@@ -82,8 +82,7 @@ export function PassoVaga({ ctx }: { ctx: Contexto }) {
         <p className="eyebrow">Etapa 2 de 7</p>
         <h2>Grupo e nível</h2>
         <p className="lead">
-          Escolha o grupo e o nível da vaga. Cada candidato pode fazer <b>uma única inscrição</b>, em um grupo e um nível
-          (item 4.5 do edital).
+          Escolha o grupo e o nível da vaga. Cada candidato pode fazer <b>uma única inscrição</b>, em um grupo e um nível.
         </p>
       </header>
 

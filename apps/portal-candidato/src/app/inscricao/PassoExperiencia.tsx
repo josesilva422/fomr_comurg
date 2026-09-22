@@ -187,7 +187,7 @@ function CartaoVinculo({
           rotulo="Descrição das atividades"
           obrigatorio
           erro={erros.descricao}
-          dica="Declarações genéricas, que não ligam você à atividade, não são consideradas (item 5.5.1)."
+          dica="Declarações genéricas, que não ligam você à atividade, não são consideradas."
           className="full"
         >
           <textarea id={`v-desc-${numero}`} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o que você fazia neste vínculo, de forma objetiva." />
@@ -210,7 +210,6 @@ function CartaoVinculo({
               tipo={opcoes[0]}
               opcoesTipo={opcoes}
               rotulo="Documento"
-              obrigatorio
               multiplo
               referencia={{ vinculo_id: vinculo.id }}
               docs={ctx.documentos.filter((d) => d.vinculo_id === vinculo.id)}
@@ -286,8 +285,8 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
       <div className="alert alert-warn">
         <div>
           <p>
-            <b>Declare todos os vínculos, inclusive os simultâneos</b> (item 5.4.3). Omitir vínculo concomitante para
-            pontuar indevidamente é falsidade e leva à eliminação (item 14.3).
+            <b>Declare todos os vínculos, inclusive os simultâneos.</b> Omitir vínculo concomitante para
+            pontuar indevidamente é falsidade e leva à eliminação.
           </p>
           <p>Estágios curriculares, bolsas, monitorias e trabalho voluntário não contam como experiência.</p>
         </div>
@@ -296,7 +295,7 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
         <div className="alert alert-info">
           <p>
             <b>Nível Sênior:</b> a liderança técnica ou responsabilidade principal exige <b>declaração específica</b> do
-            contratante, com descrição explícita das responsabilidades (item 5.3.4). Anexe-a como “Declaração específica de
+            contratante, com descrição explícita das responsabilidades. Anexe-a como “Declaração específica de
             liderança técnica”.
           </p>
         </div>
