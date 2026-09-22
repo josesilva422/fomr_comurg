@@ -1,0 +1,10 @@
+# O Netlify builda do zero no lado dele (npm install + npm run build, ver netlify.toml).
+# Nada disso precisa subir no zip do deploy — e node_modules/.next juntos passavam de 800 MB,
+# o que derrubou o primeiro deploy com "500 Internal Server Error" (payload grande demais).
+node_modules/
+.next/
+supabase/.temp/
+supabase/.branches/
+.git/
+__pycache__/
+.venv/
