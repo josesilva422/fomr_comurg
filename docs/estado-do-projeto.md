@@ -4,7 +4,9 @@ Este arquivo existe para o caso da conversa com o assistente ser resumida ou rei
 os outros arquivos de `docs/` têm os detalhes de cada decisão. **Sempre confira a data da última atualização
 no topo e o `git log` — este arquivo pode ficar desatualizado se eu esquecer de mexer nele.**
 
-**Última atualização:** 22/09/2026, madrugada (depois das 23h). **Prazo:** entrega do projeto "amanhã" (combinado em 22/09).
+**Última atualização:** 22/09/2026, tarde. **Prazo:** entrega do projeto "amanhã" (combinado em 22/09).
+**Site publicado:** https://pss-comurg-2026.netlify.app (ver `docs/publicar-netlify.md` para detalhes e os 3
+problemas resolvidos no primeiro deploy).
 
 ## O que é este projeto
 
@@ -14,9 +16,11 @@ divergir dele, o edital vence.**
 
 ## Onde está tudo
 
-- **Repositório:** local, em `C:\Users\joses\OneDrive\Documentos\form_minuta_COMURG`. Git iniciado, **nada
-  enviado a nenhum remoto ainda** (sem GitHub, sem Netlify publicado — decisão explícita do responsável de
-  não publicar por enquanto).
+- **Repositório:** `C:\Users\joses\OneDrive\Documentos\form_minuta_COMURG`, enviado para
+  `https://github.com/josesilva422/fomr_comurg` (remoto `origin`, branch `main`).
+- **Site publicado:** `https://pss-comurg-2026.netlify.app` (conta Netlify da COMURG, equipe `opevcomurg`).
+  Deploy feito por upload direto (não é deploy automático a cada push — ver `docs/publicar-netlify.md` se quiser
+  configurar isso).
 - **App do candidato + painel da Comissão:** `apps/portal-candidato` (Next.js 16, TypeScript, App Router).
   Roda com `npm run dev` **de dentro dessa pasta** (não da raiz).
 - **Banco:** Supabase, projeto `pss_comurg_2026` (ref `uwtnmzlbgbufiqzsxjuz`), organização "Comurg", região
@@ -93,8 +97,10 @@ Supabase (Storage → bucket `documentos` → selecionar e excluir).
 
 ## Ainda faltando para o lançamento de verdade
 
-- Publicar (Netlify) — preparado em `docs/publicar-netlify.md`, mas **não executado** (aguardando autorização).
-- Domínio próprio (hoje seria um `*.netlify.app`).
+- **Testar o fluxo completo no site publicado** (só confirmei página inicial e login carregando sem erro; falta
+  um teste ponta a ponta com envio de inscrição de verdade em `pss-comurg-2026.netlify.app`).
+- Domínio próprio (hoje é `pss-comurg-2026.netlify.app`).
 - Apagar os ~19 arquivos de teste que sobraram no Storage (só dá pelo painel do Supabase, ver acima).
-- Confirmar horário exato de abertura/encerramento (`interno.configuracao`) — hoje é uma suposição (mas já
-  batendo com a data do edital, 24/09/2026 00:00).
+- **Confirmar a data de abertura das inscrições antes de divulgar o link**: `interno.configuracao.inscricoes_abertura`
+  está em `2026-09-20T00:00:00-03:00` (adiantada de propósito para permitir testar); precisa voltar para
+  `2026-09-24T00:00:00-03:00` (data real do edital) antes do lançamento — não esquecer.
