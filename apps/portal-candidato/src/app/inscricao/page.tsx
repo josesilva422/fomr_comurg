@@ -12,6 +12,8 @@ export default async function PaginaInscricao() {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims) redirect("/entrar");
+  // Conferido sempre no servidor: quem não é da Comissão nunca recebe esse HTML no navegador.
+  const souComissao = (await supabase.schema("painel").rpc("sou_da_comissao")).data === true;
 
   // O RLS devolve somente as linhas do próprio candidato.
   const [c, i, d, t, k, v, p] = await Promise.all([
@@ -26,7 +28,7 @@ export default async function PaginaInscricao() {
 
   return (
     <>
-      <Cabecalho email={String(claims.email ?? "")} />
+      <Cabecalho email={String(claims.email ?? "")} linkPainel={souComissao} />
       <Assistente
         userId={String(claims.sub)}
         email={String(claims.email ?? "")}

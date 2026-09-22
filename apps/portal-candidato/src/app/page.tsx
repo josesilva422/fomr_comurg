@@ -10,6 +10,8 @@ export default async function Inicio() {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   const logado = Boolean(claims?.claims);
+  // Conferido sempre no servidor: quem não é da Comissão nunca recebe esse HTML no navegador.
+  const souComissao = logado ? (await supabase.schema("painel").rpc("sou_da_comissao")).data === true : false;
   const { data } = await supabase.rpc("periodo_inscricoes");
   const periodo: Periodo = Array.isArray(data) && data.length ? data[0] : null;
 
@@ -27,7 +29,7 @@ export default async function Inicio() {
 
   return (
     <>
-      <Cabecalho periodo={situacao} email={logado ? String(claims?.claims?.email ?? "") : null} />
+      <Cabecalho periodo={situacao} email={logado ? String(claims?.claims?.email ?? "") : null} linkPainel={souComissao} />
       <main className="wrap" style={{ padding: "24px 16px 64px" }}>
         <section className="card hero">
           <p className="eyebrow">Edital 2026 · Analista de Governança</p>

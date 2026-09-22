@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { TemaBotao } from "./TemaBotao";
 
-export function Cabecalho({ email, periodo }: { email?: string | null; periodo?: string }) {
+export function Cabecalho({
+  email,
+  periodo,
+  linkPainel,
+}: {
+  email?: string | null;
+  periodo?: string;
+  /** Só passe `true` depois de conferir no servidor (painel.sou_da_comissao). Nunca decidir isso no navegador. */
+  linkPainel?: boolean;
+}) {
   return (
     <header className="site-header">
       <div className="wrap">
@@ -15,6 +24,11 @@ export function Cabecalho({ email, periodo }: { email?: string | null; periodo?:
         </Link>
         <div className="header-right">
           <TemaBotao />
+          {linkPainel ? (
+            <Link href="/painel" className="theme-btn" style={{ textDecoration: "none" }}>
+              Painel da Comissão
+            </Link>
+          ) : null}
           {periodo ? (
             <div className="period">
               <i /> {periodo}
