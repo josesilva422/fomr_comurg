@@ -1,19 +1,22 @@
 // Verificação de documentos via OpenAI (Responses API). SERVIDOR APENAS — nunca importar em um
 // componente "use client" (a chave ficaria exposta no navegador).
 //
-// Princípio do projeto (CLAUDE.md): "A IA extrai; o código pontua." Esta função faz duas coisas com o
-// documento: (1) transcreve tudo o que está explícito nele, literalmente, sem resumir nem deduzir
-// ("texto_extraido" — dá à Comissão a leitura completa do documento, não só os campos comparados); e
-// (2) compara, campo a campo, o que o candidato DECLAROU no formulário com o que o documento REALMENTE
-// diz, citando o trecho. Ela NUNCA decide habilitação, pontuação ou autenticidade; quem faz isso é o
-// motor de regras e, por fim, a Comissão. Se o documento não menciona algo, a resposta é "não
-// mencionado", nunca um "sim" inventado.
+// Princípio do projeto (CLAUDE.md): "A IA extrai; o código pontua." Esta função faz três coisas com o
+// documento: (1) identifica que TIPO de documento ele realmente é, e se bate com o que era esperado;
+// (2) resume objetivamente o que ele mostra; (3) compara, campo a campo, o que o candidato DECLAROU no
+// formulário com o que o documento REALMENTE diz, citando o trecho. Ela NUNCA decide habilitação,
+// pontuação ou autenticidade; quem faz isso é o motor de regras e, por fim, a Comissão.
+//
+// Bug real encontrado em 22/09/2026 (v5): a IA marcou "confere: sim" pro campo CPF citando o valor
+// EXATO que o candidato tinha declarado, mas o documento (um "Relatório Completo" qualquer, anexado
+// como identidade) não continha CPF nenhum — a IA só repetiu de volta o valor declarado como se tivesse
+// encontrado ele no documento. A v6 reforça bastante a instrução contra isso (ver o prompt abaixo).
 //
 // Formato da chamada verificado em developers.openai.com (guias "pdf-files" e "structured-outputs") em
 // 22/09/2026. Testado pela primeira vez em 22/09/2026 com a chave fornecida pelo responsável.
 
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
-const VERSAO_PROMPT = "verificacao-documento-v5-2026-09-22";
+const VERSAO_PROMPT = "verificacao-documento-v6-2026-09-22";
 
 export interface CampoDeclarado {
   campo: string;
@@ -27,36 +30,41 @@ const SCHEMA_VERIFICACAO = {
     tipo_documento: {
       type: "object",
       description:
-        "Checagem PRIORITÁRIA: o arquivo anexado é mesmo o tipo de documento esperado (ex.: diploma de doutorado, e não um certificado de curso qualquer)? Faça essa checagem ANTES de entrar no detalhe dos campos.",
+        "Checagem PRIORITÁRIA: o arquivo anexado é mesmo o tipo de documento esperado? Baseie-se SÓ nas características estruturais/oficiais do documento (layout, campos que ele tem, termos que usa, órgão emissor, número de registro, foto, timbre etc.) — NUNCA no fato de ele mencionar o nome ou o CPF da pessoa. Um documento qualquer pode citar o nome e o CPF de alguém sem ser o tipo de documento esperado.",
       properties: {
         o_que_e: {
           type: "string",
-          description: "Descreva objetivamente o que esse documento realmente é, pelo que está escrito nele (ex.: 'Certificado de conclusão do curso Excel Avançado, 40 horas, emitido pela Alura em 2019' ou 'Diploma de Doutorado em Engenharia Mecânica pela UFG, colação em março de 2020').",
+          description: "Descreva objetivamente o que esse documento realmente é, só pelas características estruturais dele (ex.: 'Certificado de conclusão do curso Excel Avançado, 40 horas, emitido pela Alura em 2019' ou 'Diploma de Doutorado em Engenharia Mecânica pela UFG, colação em março de 2020'). Nunca conclua o tipo só porque o nome ou o CPF da pessoa aparecem no texto.",
         },
         bate_com_esperado: {
           type: "boolean",
-          description: "true se esse documento é claramente do tipo esperado (indicado no início do prompt e nos campos declarados abaixo); false se é claramente outro tipo de documento (ex.: pediram diploma de doutorado e o arquivo é um certificado de curso curto).",
+          description: "true se esse documento é claramente do tipo esperado (indicado no início do prompt); false se é claramente outro tipo de documento (ex.: pediram diploma de doutorado e o arquivo é um certificado de curso curto, ou pediram identidade e o arquivo é um relatório qualquer que só cita o nome da pessoa).",
         },
         observacao: { type: ["string", "null"], description: "Se bate_com_esperado for false, explique objetivamente a diferença. Null se bater." },
       },
       required: ["o_que_e", "bate_com_esperado", "observacao"],
       additionalProperties: false,
     },
-    texto_extraido: {
+    resumo_documento: {
       type: "string",
       description:
-        "Transcrição literal e completa de tudo que está explícito no documento (todas as páginas): campos preenchidos, nomes, números de documento, datas, cargos, períodos, valores, assinaturas, carimbos, timbre, códigos de verificação/QR e qualquer outro dado visível e relevante. Nunca resumida, nunca deduzida — só o que está escrito ou representado no documento. Se houver corte, trecho ilegível, ausência de assinatura/carimbo/timbre, diga isso dentro do texto, no ponto correspondente.",
+        "Um resumo objetivo, em português, do que o documento mostra (quem, o quê, quando, onde) — não é uma transcrição literal, é uma síntese curta (1 a 3 frases). Ex.: 'José Gabriel Pereira da Silva concluiu o curso de Ciência da Computação na instituição Unip em 2025.' Use SÓ o que está explicitamente escrito no documento — nunca complete, nunca deduza, nunca inclua um dado que não esteja lá, mesmo que pareça óbvio ou provável.",
     },
     comparacoes: {
       type: "array",
-      description: "Uma entrada para CADA campo declarado recebido, na mesma ordem.",
+      description:
+        "Uma entrada para CADA campo declarado recebido, na mesma ordem. ATENÇÃO — erro grave e comum a evitar: NUNCA repita o valor que o candidato declarou como se ele tivesse sido encontrado no documento. Você só pode dizer 'confere: sim' se conseguir apontar o trecho EXATO do documento (em documento_diz) que diz isso — se não achar esse trecho de verdade no texto do arquivo, é 'nao_mencionado', mesmo que o valor declarado pareça certo ou plausível.",
       items: {
         type: "object",
         properties: {
           campo: { type: "string", description: "Repita exatamente o nome do campo recebido" },
-          documento_diz: { type: ["string", "null"], description: "O que o documento realmente afirma sobre esse assunto, com as palavras dele (ou próximas). Null se o documento não toca no assunto." },
+          documento_diz: {
+            type: ["string", "null"],
+            description:
+              "Cite o trecho REAL do documento sobre esse assunto, com as palavras dele (ou muito próximas) — precisa ser algo que você efetivamente leu no arquivo, nunca uma cópia do valor declarado. Null se o documento não toca no assunto.",
+          },
           pagina: { type: ["integer", "null"], description: "Número da página do documento (a primeira página é 1) onde está o trecho citado em documento_diz. Null se documento_diz for null, se o arquivo for uma imagem única sem páginas, ou se não for possível determinar a página." },
-          confere: { type: "string", enum: ["sim", "nao", "nao_mencionado"], description: "sim = o documento confirma o valor declarado; nao = o documento diz algo diferente/contraditório; nao_mencionado = o documento não fala sobre isso" },
+          confere: { type: "string", enum: ["sim", "nao", "nao_mencionado"], description: "sim = você encontrou, de verdade, um trecho no documento que confirma o valor declarado (cite-o em documento_diz); nao = o documento diz algo diferente/contraditório; nao_mencionado = o documento não fala sobre isso, mesmo que o valor declarado seja plausível" },
         },
         required: ["campo", "documento_diz", "pagina", "confere"],
         additionalProperties: false,
@@ -75,53 +83,65 @@ const SCHEMA_VERIFICACAO = {
     },
     confianca_geral: { type: "number", description: "0 a 1" },
   },
-  required: ["legivel", "tipo_documento", "texto_extraido", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
+  required: ["legivel", "tipo_documento", "resumo_documento", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
   additionalProperties: false,
 } as const;
 
 function montarPrompt(campos: CampoDeclarado[], tipoEsperado: string): string {
   const lista = campos.map((c, i) => `${i + 1}. ${c.campo}: "${c.valor}"`).join("\n");
   return `Você está conferindo um documento anexado a uma inscrição do PSS COMURG 2026. O candidato anexou este
-arquivo especificamente como comprovante de: **${tipoEsperado}**. Faça TRÊS coisas com este documento, nesta ordem.
+arquivo especificamente como comprovante de: **${tipoEsperado}**.
+
+REGRA MAIS IMPORTANTE, vale para TUDO abaixo: NUNCA invente, NUNCA alucine, NUNCA complete com dedução ou bom
+senso. Relate só o que você realmente vê escrito ou representado no documento. Em especial: NÃO repita de volta
+um valor que o candidato declarou como se ele estivesse confirmado no documento — só porque um dado (nome, CPF,
+data) parece plausível não significa que ele está de fato escrito no arquivo. Você só pode afirmar que algo está
+no documento se puder citar o trecho exato onde isso aparece.
+
+Faça TRÊS coisas com este documento, nesta ordem.
 
 1) TIPO DO DOCUMENTO (campo "tipo_documento") — a checagem mais importante, faça ANTES de tudo: olhe o documento
-inteiro e identifique objetivamente o que ele É (em "o_que_e"), só pelo que está escrito nele. Depois responda em
-"bate_com_esperado": esse documento é realmente um(a) "${tipoEsperado}"? Um documento de um tipo completamente
-diferente do esperado — por exemplo, a pessoa declarou um doutorado e anexou um certificado de curso de 40 horas,
-ou declarou uma certificação profissional e anexou uma CTPS — deve ser marcado como "bate_com_esperado": false,
-mesmo que o restante do documento pareça legítimo. Isso é diferente de "confere: nao" nas comparações abaixo: aqui
-o problema é o tipo do documento como um todo, não um campo específico.
+inteiro e identifique objetivamente o que ele É (em "o_que_e"), baseado só nas características estruturais e
+oficiais dele — layout, campos que ele tem, termos que usa, órgão emissor, número de registro, foto, timbre.
+Depois responda em "bate_com_esperado": esse documento é realmente um(a) "${tipoEsperado}"? Um documento de um
+tipo completamente diferente do esperado — por exemplo, a pessoa declarou um doutorado e anexou um certificado
+de curso de 40 horas, ou declarou identidade e anexou um relatório qualquer que só cita o nome dela — deve ser
+marcado como "bate_com_esperado": false, mesmo que o restante do documento pareça legítimo. **O fato de o nome
+ou o CPF do candidato aparecerem no texto NÃO significa que o documento é do tipo esperado** — muitos documentos
+diferentes citam nome e CPF de alguém sem serem, por exemplo, uma identidade. Isso é diferente de "confere: nao"
+nas comparações abaixo: aqui o problema é o tipo do documento como um todo, não um campo específico.
 
-2) TRANSCRIÇÃO LITERAL COMPLETA, em "texto_extraido": leia o documento inteiro (todas as páginas) e transcreva
-fielmente tudo o que está explícito nele — campos preenchidos, nomes, números de documento, datas, cargos,
-períodos, valores, assinaturas, carimbos, timbre, códigos de verificação/QR, observações e qualquer outro dado
-visível e relevante. Não resuma, não traduza, não deduza nada com bom senso ou conhecimento externo — só o que
-está escrito ou visualmente representado no documento. Se alguma parte estiver cortada, ilegível, sem
-assinatura, sem carimbo, sem papel timbrado, ou com sinal de edição, diga isso dentro do texto, no ponto
-correspondente (ou em "observacoes_gerais", se for algo geral do documento como um todo).
+2) RESUMO OBJETIVO, em "resumo_documento": escreva 1 a 3 frases, em português, resumindo o que o documento
+REALMENTE é e mostra (quem, o quê, quando, onde) — baseado no que você concluiu em "tipo_documento", nunca no
+rótulo esperado (se bate_com_esperado for false, o resumo tem que descrever o documento pelo que ele É, não
+pelo que deveria ser). Não é uma transcrição literal completa, é uma síntese direta. Exemplos: "José Gabriel
+Pereira da Silva concluiu o curso de Ciência da Computação na instituição Unip em 2025." ou, se o documento não
+bate com o esperado, "Este arquivo é um currículo, com formação e experiência profissional de Juliana Prado
+Martins — não é um documento de identidade." Use só o que está explicitamente no documento; se o documento
+estiver ilegível, diga isso no resumo.
 
 3) COMPARAÇÃO CAMPO A CAMPO: o candidato DECLAROU os seguintes dados no formulário (não assuma que estão certos
-— é isso que você vai checar contra o que você leu no passo 2). Se o documento for de um tipo completamente
-diferente do esperado (passo 1), ainda assim tente comparar os campos com o que o documento realmente diz —
-provavelmente a maioria vai dar "nao" ou "nao_mencionado", e isso é esperado:
+— é isso que você vai checar contra o documento). Se o documento for de um tipo completamente diferente do
+esperado (passo 1), ainda assim tente comparar os campos com o que o documento realmente diz — provavelmente a
+maioria vai dar "nao_mencionado", e isso é esperado e correto:
 
 ${lista}
 
 Para CADA um dos itens acima, na mesma ordem, diga:
-- "confere": "sim" se o documento confirma claramente esse dado; "nao" se o documento diz algo diferente ou
-  contraditório; "nao_mencionado" se o documento simplesmente não fala sobre esse assunto (mais comum do que
-  parece — por exemplo, um diploma pode não usar a palavra "bacharel" mesmo sendo de bacharelado, ou uma
-  declaração pode citar o cargo mas não o período).
-- "documento_diz": cite o que o documento REALMENTE afirma sobre aquele assunto, com palavras dele. Se o
-  documento não menciona nada relacionado, use null — não invente, não deduza, não complete por dedução ou
-  bom senso. Só marque "sim" se estiver escrito ou representado de forma inequívoca no documento.
+- "confere": "sim" **somente se você localizou, de fato, um trecho no documento que confirma esse dado** — cite
+  esse trecho em "documento_diz". "nao" se o documento diz algo diferente ou contraditório. "nao_mencionado" se o
+  documento simplesmente não fala sobre esse assunto — isso é muito mais comum do que parece, e é sempre a
+  resposta certa quando você não consegue apontar o trecho exato, mesmo que o valor declarado pareça óbvio,
+  provável ou já confirmado em outro campo.
+- "documento_diz": cite o trecho REAL do documento, com as palavras dele (ou muito próximas). Nunca copie o
+  valor declarado aqui sem antes ter certeza de que ele está mesmo escrito no documento. Se o documento não
+  menciona nada relacionado, use null.
 - "pagina": em qual página do documento está esse trecho (a primeira página é 1). Use null se documento_diz for
   null, se o arquivo não tiver conceito de página (uma única imagem), ou se não der para determinar com certeza.
 
 Marque "legivel": false se o documento estiver ilegível, cortado, ou genérico demais para checar qualquer campo
-com segurança — mesmo assim, transcreva em "texto_extraido" o que der para ler. Em "observacoes_gerais", aponte
-algo relevante fora da transcrição e das comparações (falta de assinatura, papel sem timbre, carimbo ausente),
-se houver.
+com segurança. Em "observacoes_gerais", aponte algo relevante fora do resumo e das comparações (falta de
+assinatura, papel sem timbre, carimbo ausente), se houver.
 
 Em "indicios_adulteracao", repare se algum campo do documento parece visualmente diferente do resto — fonte ou
 tamanho de letra que destoa, alinhamento fora do padrão, cor de texto diferente, região com aspecto de
@@ -133,7 +153,7 @@ algo concreto e descreva em "detalhes"; na dúvida, ou se o documento parecer un
 export interface ResultadoVerificacao {
   legivel: boolean;
   tipo_documento: { o_que_e: string; bate_com_esperado: boolean; observacao: string | null };
-  texto_extraido: string;
+  resumo_documento: string;
   comparacoes: { campo: string; documento_diz: string | null; pagina: number | null; confere: "sim" | "nao" | "nao_mencionado" }[];
   observacoes_gerais: string | null;
   indicios_adulteracao: { suspeita: boolean; detalhes: string | null };

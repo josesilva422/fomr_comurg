@@ -46,8 +46,10 @@ interface VerificacaoIA {
   legivel: boolean;
   comparacoes: Comparacao[];
   observacoes_gerais: string | null;
-  // Opcionais: extrações feitas antes de 22/09/2026 (versões v2/v3/v4 do prompt) não têm esses campos.
+  // Opcionais: extrações feitas antes de 22/09/2026 (versões v2 a v5 do prompt) não têm esses campos, ou têm
+  // versões antigas deles (texto_extraido virou resumo_documento na v6).
   indicios_adulteracao?: { suspeita: boolean; detalhes: string | null };
+  resumo_documento?: string;
   texto_extraido?: string;
   tipo_documento?: { o_que_e: string; bate_com_esperado: boolean; observacao: string | null };
   confianca_geral: number;
@@ -400,9 +402,13 @@ function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
             ))}
           </div>
           {extracao.json_extraido.observacoes_gerais ? <p className="hint" style={{ marginTop: 8 }}>{extracao.json_extraido.observacoes_gerais}</p> : null}
-          {extracao.json_extraido.texto_extraido ? (
+          {extracao.json_extraido.resumo_documento ? (
+            <p className="hint" style={{ marginTop: 8 }}>
+              <b>Resumo do documento:</b> {extracao.json_extraido.resumo_documento}
+            </p>
+          ) : extracao.json_extraido.texto_extraido ? (
             <details style={{ marginTop: 8 }}>
-              <summary>Transcrição completa do documento</summary>
+              <summary>Transcrição completa do documento (extração antiga, sem resumo)</summary>
               <p className="hint" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
                 {extracao.json_extraido.texto_extraido}
               </p>
