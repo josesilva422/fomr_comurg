@@ -18,6 +18,17 @@ export interface AvaliacaoResumo {
   total: number;
   submetida_em: string | null;
   calculado_em: string;
+  posicao: number | null;
+  vagas: number;
+  convocado: boolean;
+}
+
+export interface CronogramaItem {
+  ordem: number;
+  evento: string;
+  data_inicio: string | null;
+  data_fim: string | null;
+  detalhe: string | null;
 }
 
 export interface ItemFormacao {

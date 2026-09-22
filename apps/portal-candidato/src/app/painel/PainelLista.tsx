@@ -7,7 +7,6 @@ import type { Grupo, Nivel } from "@/lib/tipos";
 import type { AvaliacaoResumo } from "@/lib/pontuacao";
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-const PONTOS_MINIMOS_ENTREVISTA = 35; // edital, item 6.4.4
 
 export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
   const router = useRouter();
@@ -23,7 +22,7 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
       .filter((a) => (habilitacao === "todos" ? true : habilitacao === "habilitados" ? a.habilitado : !a.habilitado))
       .filter((a) => grupo === "todos" || a.grupo === grupo)
       .filter((a) => nivel === "todos" || a.nivel === nivel)
-      .filter((a) => !soConvocaveis || (a.habilitado && a.total >= PONTOS_MINIMOS_ENTREVISTA))
+      .filter((a) => !soConvocaveis || a.convocado)
       .filter((a) => !termo || a.nome.toLowerCase().includes(termo) || a.cpf.includes(termo.replace(/\D/g, "")))
       .sort((a, b) => b.total - a.total);
   }, [avaliacoes, habilitacao, grupo, nivel, soConvocaveis, busca]);
@@ -62,7 +61,7 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
         </select>
         <label className="check" style={{ marginTop: 0 }}>
           <input type="checkbox" checked={soConvocaveis} onChange={(e) => setSoConvocaveis(e.target.checked)} />
-          Só quem atinge os {PONTOS_MINIMOS_ENTREVISTA} pts da entrevista (item 6.4.4)
+          Só convocados (até 3 por vaga, itens 6.4.4 e 6.5.1)
         </label>
         {(grupo !== "todos" || nivel !== "todos" || soConvocaveis || busca) ? (
           <button
@@ -94,6 +93,7 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
                 <th style={{ textAlign: "right" }}>Cursos</th>
                 <th style={{ textAlign: "right" }}>Experiência</th>
                 <th style={{ textAlign: "right" }}>Total</th>
+                <th>Convocação</th>
               </tr>
             </thead>
             <tbody>
@@ -116,6 +116,17 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
                   <td style={{ textAlign: "right" }}>{a.pontos_experiencia.toFixed(1)}</td>
                   <td className="col-total" style={{ textAlign: "right" }}>
                     {a.total.toFixed(1)}
+                  </td>
+                  <td>
+                    {a.convocado ? (
+                      <span className="pill pill-ok">Convocado{a.posicao ? ` (${a.posicao}º)` : ""}</span>
+                    ) : a.posicao ? (
+                      <span className="pill pill-muted">
+                        {a.posicao}º, fora do corte ({a.vagas} vaga{a.vagas === 1 ? "" : "s"} × 3)
+                      </span>
+                    ) : a.habilitado ? (
+                      <span className="pill pill-muted">Abaixo de 35 pts</span>
+                    ) : null}
                   </td>
                 </tr>
               ))}

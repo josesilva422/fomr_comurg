@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AvaliacaoResumo } from "@/lib/pontuacao";
+import type { AvaliacaoResumo, CronogramaItem } from "@/lib/pontuacao";
 import { PainelLista } from "./PainelLista";
+import { Cronograma } from "./Cronograma";
 
 // Atalho de hoje (ver docs/decisoes-pendentes.md, P5): o painel roda nas mesmas rotas/login do portal
 // do candidato, liberado só para quem está em interno.usuarios_internos. O CLAUDE.md pede duas áreas
@@ -29,16 +30,20 @@ export default async function PainelPage() {
   }
 
   const { data: avaliacoes, error } = await supabase.schema("painel").rpc("listar_avaliacoes");
+  const { data: cronograma } = await supabase.schema("painel").rpc("listar_cronograma");
 
   return (
     <main className="wrap" style={{ padding: "24px 16px 64px" }}>
+      <Cronograma itens={(cronograma as CronogramaItem[] | null) ?? []} />
       <div className="card">
         <header className="step-head">
           <p className="eyebrow">Painel da Comissão</p>
           <h2>Análise curricular — resultado calculado</h2>
           <p className="lead">
             Pontuação calculada automaticamente pelo motor de regras (rascunho). Nenhum resultado é definitivo até
-            revisão e aprovação da Comissão. Clique num candidato para ver o detalhamento por critério.
+            revisão e aprovação da Comissão. Clique num candidato para ver o detalhamento por critério. A coluna
+            &quot;Convocação&quot; segue os itens 6.4.4 e 6.5.1 (AC ≥ 35 pts, até 3 candidatos por vaga, com empate
+            na última posição).
           </p>
         </header>
         {error ? (

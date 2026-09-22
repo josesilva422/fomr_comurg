@@ -6,8 +6,8 @@
 > **Versão do edital considerada:** minuta v2 atualizada em 22/09/2026 08:07 (arquivo "Minuta_Edital_PSS_COMURG_2026_v2 - 22-09-2026-08-07.docx", recebido por WhatsApp e salvo em `docs/`). Mudanças em relação à versão de 21/09/2026 (conferidas por diff completo do texto):
 > 1. **Anexo I, item 1 (Formação Acadêmica Adicional):** Especialização/MBA deixou de ter limite de quantidade (antes: até 6,0 pts / máx. 3 títulos) — agora "sem limite de quantidade", respeitando só o teto global de 10,0 pts do critério. Mestrado e doutorado **não mudaram** (máx. 1 título cada). Cursos/Certificações (item 2) e Experiência (item 3) **não mudaram**. Já corrigido no motor de regras (migração `20260922160000_formacao_especializacao_sem_limite.sql`).
 > 2. **Item 4.9 (chave Pix):** o texto agora cita a chave `pss2026comurg@comurg.com.br` — o sistema já usava essa chave (`interno.configuracao`), então a divergência antes registrada aqui está resolvida.
-> 3. **Item 6.5.1 (convocação para entrevista):** de "até 5 candidatos por vaga" para **"até 3 candidatos por vaga"**. Ainda não implementado no sistema (Fase 3/4); ajustar quando a convocação for construída.
-> 4. **Anexo IV (cronograma):** entrevistas e etapas seguintes foram antecipadas (entrevistas agora `03/11 a 12/11`, resultado final `até 25/11`, convocações `a partir de 26/11` — era `11/12` e `12/12`). Não afeta o sistema hoje (essas telas ainda não existem), mas atualizar quando forem construídas.
+> 3. **Item 6.5.1 (convocação para entrevista):** de "até 5 candidatos por vaga" para **"até 3 candidatos por vaga"**. Implementado em 22/09/2026 (migração `20260922170000_convocacao_e_cronograma.sql`) — ver seção 8.6.
+> 4. **Anexo IV (cronograma):** entrevistas e etapas seguintes foram antecipadas (entrevistas agora `03/11 a 12/11`, resultado final `até 25/11`, convocações `a partir de 26/11` — era `11/12` e `12/12`). Os 18 itens do Anexo IV estão em `interno.cronograma` (mesma migração), exibidos no painel via `painel.listar_cronograma()`.
 > 5. **Anexo III (Matriz de Comprovação Documental):** reescrito com uma linha por tipo de documento (antes era mais resumido); não introduz exigência nova além do que já está nas seções 8.1.2 e 8.4 deste arquivo.
 
 ---
@@ -289,7 +289,7 @@ A pontuação é por **degrau**, não proporcional. **Os limites das faixas se s
 
 - **PF = AC + ET** (máx. 100). AC máx. 60; ET máx. 40.
 - **Habilitação** é binária (HABILITADO / INABILITADO), sem pontos; falhar em qualquer requisito obrigatório elimina (6.3.3).
-- **Convocação para entrevista:** AC ≥ **35 pontos**; até **3 candidatos por vaga** do Grupo/Nível (quantidade de vagas do item 2.1) — reduzido de 5 para 3 no edital atualizado em 22/09/2026 —, **incluindo empatados na última posição**. Abaixo de 35 não é convocado, mesmo que sobrem vagas na fila (6.4.4 e 6.5.1).
+- **Convocação para entrevista:** AC ≥ **35 pontos**; até **3 candidatos por vaga** do Grupo/Nível (quantidade de vagas do item 2.1) — reduzido de 5 para 3 no edital atualizado em 22/09/2026 —, **incluindo empatados na última posição**. Abaixo de 35 não é convocado, mesmo que sobrem vagas na fila (6.4.4 e 6.5.1). **Implementado** em `painel.listar_avaliacoes()` (colunas `posicao`/`vagas`/`convocado`, via `RANK()` por Grupo/Nível — inclui empate na última posição) e `interno.vagas`; exibido no painel (coluna "Convocação"). Ainda **não publicado ao candidato** (etapa de publicação, seção 6, continua pendente).
 - **Entrevista (ET, máx. 40):** banca de no mínimo 3 avaliadores; cada um dá nota individual com justificativa; a nota final é a **média aritmética**. Eliminado quem tiver **menos de 15 pontos**, faltar ou fraudar (6.5.7).
 
   | Competência | Máx. |
@@ -314,6 +314,8 @@ Faixas do Anexo II: nas competências de peso 10, Insuficiente 0–3, Regular 4�
 | Júnior | 1 | 1 | 1 | R$ 8.000,00 |
 | Pleno | 1 | 2 | 1 | R$ 11.000,00 |
 | Sênior | 1 | 1 | 1 | R$ 15.000,00 |
+
+Tabela seedada em `interno.vagas` (grupo, nivel, quantidade, remuneracao) desde 22/09/2026 — é dali que `painel.listar_avaliacoes()` lê a quantidade de vagas para calcular a convocação (item 8.6).
 
 Total de 10 vagas imediatas. **Vagas não migram entre Grupos ou níveis** sem retificação publicada. Reservas de PcD (5%) e de candidatos negros (20%) não geram vaga imediata nesta distribuição; valem como **preferência no cadastro de reserva**, na ordem de classificação (10.1 e 10.2). Heteroidentificação por comissão de no mínimo 5 membros (10.4), fora do escopo inicial; o sistema só registra a autodeclaração e o resultado.
 
