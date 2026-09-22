@@ -53,6 +53,8 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
   const nDocs = ctx.documentos.length;
   const intervalos = ctx.vinculos.map(intervalo).filter((x): x is [number, number] => x !== null);
   const tempoQueConta = formatarMeses(uniaoMeses(intervalos));
+  const bloqueantes = ctx.pendencias.filter((p) => p.bloqueia);
+  const avisos = ctx.pendencias.filter((p) => !p.bloqueia);
 
   async function enviar() {
     setErro("");
@@ -89,14 +91,14 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
         </p>
       </header>
 
-      {ctx.pendencias.length ? (
+      {bloqueantes.length ? (
         <div className="alert alert-err" role="alert">
           <div>
             <p>
               <b>Ainda há pendências antes de enviar:</b>
             </p>
             <ul className="pend">
-              {ctx.pendencias.map((p, idx) => (
+              {bloqueantes.map((p, idx) => (
                 <li key={`${p.codigo}-${idx}`}>
                   <span>{p.mensagem}</span>
                   <button type="button" className="btn btn-sm" onClick={() => ctx.irPara(p.etapa)}>
@@ -112,6 +114,26 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
           <p>Tudo certo. Falta apenas confirmar as declarações abaixo.</p>
         </div>
       )}
+
+      {avisos.length ? (
+        <div className="alert alert-warn" role="status">
+          <div>
+            <p>
+              <b>Fique atento — isso não impede o envio, mas afeta a pontuação:</b>
+            </p>
+            <ul className="pend">
+              {avisos.map((p, idx) => (
+                <li key={`${p.codigo}-${idx}`}>
+                  <span>{p.mensagem}</span>
+                  <button type="button" className="btn btn-sm" onClick={() => ctx.irPara(p.etapa)}>
+                    Revisar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : null}
 
       <Secao titulo="Dados pessoais" onEditar={() => ctx.irPara(1)}>
         <Linha t="Nome" d={c.nome} />

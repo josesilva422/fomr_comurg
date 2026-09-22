@@ -135,9 +135,14 @@ export interface Vinculo {
   descricao: string;
 }
 
-/** Pendência devolvida por publico.verificar_inscricao() (fonte única das regras de envio). */
+/**
+ * Pendência devolvida por publico.verificar_inscricao() (fonte única das regras de envio).
+ * `bloqueia`: true impede o envio (precisa corrigir); false é só um aviso (ex.: título/curso sem
+ * documento anexado — pode enviar, mas o item não pontua na análise curricular).
+ */
 export interface Pendencia {
   codigo: string;
   mensagem: string;
   etapa: number;
+  bloqueia: boolean;
 }

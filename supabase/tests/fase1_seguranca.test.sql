@@ -214,12 +214,23 @@ begin
   t := t || pg_temp.igual((p like '%menor_de_18%')::text, 'true', 'menor de 18 anos');
   update publico.candidatos set data_nascimento = '1988-03-14';
 
+  -- título sem documento anexado: AVISO não bloqueante (não impede o envio) e não pontua no motor de regras
+  -- (decisão do responsável, 22/09/2026 — migração 20260922150000_avisos_nao_bloqueantes_formacao.sql).
+  insert into publico.titulos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+    values (ia, 'especializacao', 'MBA em Gestão', 'FGV', 400, '2020-01-01');
+  select bloqueia into p from publico.verificar_inscricao() where codigo = 'titulo_sem_documento' limit 1;
+  t := t || pg_temp.igual(p, 'false', 'título sem documento não bloqueia (é aviso)');
+
   perform pg_temp.preenche(ia, true);
-  select count(*) into n from publico.verificar_inscricao();
+  select count(*) filter (where bloqueia) into n from publico.verificar_inscricao();
   select coalesce(string_agg(codigo, ','), 'nenhuma') into p from publico.verificar_inscricao();
-  t := t || pg_temp.igual(n::text, '0', 'inscrição completa sem pendências (restantes: ' || p || ')');
+  t := t || pg_temp.igual(n::text, '0', 'inscrição completa sem pendências bloqueantes, mesmo com título sem doc (restantes: ' || p || ')');
   select publico.submeter_inscricao() into st;
-  t := t || pg_temp.igual(st::text, 'submetida', 'envio da inscrição completa');
+  t := t || pg_temp.igual(st::text, 'submetida', 'envio funciona mesmo com o aviso de título sem documento');
+  perform pg_temp.admin();
+  select av.pontos_formacao::text into p from interno.calcular_avaliacao(ia) av;
+  t := t || pg_temp.igual(p, '0.00', 'título sem documento não pontua no motor de regras');
+  perform pg_temp.como(ua, 'a@teste.local');
   select (submetida_em is not null)::text into p from publico.inscricoes;
   t := t || pg_temp.igual(p, 'true', 'submetida_em preenchido pelo servidor');
   -- ENVIO DEFINITIVO: depois de enviada, o candidato só lê

@@ -46,9 +46,9 @@ export function Assistente(props: DadosIniciais) {
   const [pendencias, setPendencias] = useState(props.pendencias);
   const [rascunhosVinculosCV, setRascunhosVinculosCV] = useState<RascunhoVinculo[]>([]);
 
-  // primeira etapa com pendência (senão, a revisão)
+  // primeira etapa com pendência BLOQUEANTE (avisos, como título sem documento, não desviam o candidato)
   const [passo, setPasso] = useState(() => {
-    const abertas = props.pendencias.map((p) => p.etapa).filter((n) => n >= 1 && n <= 6);
+    const abertas = props.pendencias.filter((p) => p.bloqueia).map((p) => p.etapa).filter((n) => n >= 1 && n <= 6);
     return abertas.length ? Math.min(...abertas) : 7;
   });
   const [visitados, setVisitados] = useState<number[]>([]);
@@ -108,9 +108,12 @@ export function Assistente(props: DadosIniciais) {
     if (n > 1 && !candidato) return { classe: "", texto: "Preencha a etapa 1" };
     if (n === 7) return { classe: "", texto: "Conferir e enviar" };
     if (n === 5 && !visitados.includes(5) && pendencias.every((p) => p.etapa !== 5)) return { classe: "", texto: "Opcional" };
-    const k = pendencias.filter((p) => p.etapa === n).length;
-    if (k === 0) return { classe: "is-done", texto: "Completa" };
-    return { classe: visitados.includes(n) ? "is-warn" : "", texto: `${k} pendência${k > 1 ? "s" : ""}` };
+    const doPasso = pendencias.filter((p) => p.etapa === n);
+    const bloqueantes = doPasso.filter((p) => p.bloqueia).length;
+    if (bloqueantes > 0) return { classe: visitados.includes(n) ? "is-warn" : "", texto: `${bloqueantes} pendência${bloqueantes > 1 ? "s" : ""}` };
+    const avisos = doPasso.length;
+    if (avisos > 0) return { classe: "is-done", texto: `Completa · ${avisos} aviso${avisos > 1 ? "s" : ""}` };
+    return { classe: "is-done", texto: "Completa" };
   }
 
   const chipVaga =
