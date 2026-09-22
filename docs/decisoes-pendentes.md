@@ -20,6 +20,7 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | D12 | A pontuação **precisava aparecer numa tela hoje**, mesmo sem o painel interno (app separado) existir ainda | Responsável, 22/09/2026 | painel roda dentro do mesmo app do portal, só para quem está na lista `interno.usuarios_internos`; ver P5 |
 | D13 | **Login do painel reforçado**: e-mail + senha (conferidos sem abrir sessão) e só depois o código por e-mail — não é mais o login simples do candidato. Limite conhecido: ver P8. | Responsável, 22/09/2026 | `/painel/entrar`, `/api/painel/senha`, `painel.eh_membro` |
 | D14 | **A IA passou a comparar, não só transcrever**: para cada documento, ela recebe o que o candidato declarou (curso, instituição, período etc.) e diz, campo a campo, se o documento confirma, contradiz ou não menciona — sempre citando o que o documento realmente diz. | Responsável, 22/09/2026 | `src/lib/openai.ts` (verificarDocumento), `painel.dados_declarados_documento` |
+| D15 | **Documentos da análise curricular (diploma, pós/mestrado/doutorado, certificados, comprovantes de experiência, ART/RRT/acervo, declaração de liderança, histórico escolar, revalidação de diploma, tradução juramentada, currículo) só aceitam PDF.** Identidade, CPF, laudo PcD, autodeclaração racial, comprovante de Pix e requerimento de isenção continuam aceitando PDF/JPG/PNG. | Responsável, 22/09/2026 | migração `20260922130000_pdf_obrigatorio_analise_curricular.sql` (constraint no banco), `tipos-inscricao.ts:exigeSomentePdf` |
 
 ## Pendências novas (21/09/2026)
 
