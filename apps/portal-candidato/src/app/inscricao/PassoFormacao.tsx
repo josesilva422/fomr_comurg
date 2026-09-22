@@ -183,7 +183,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         </p>
       </header>
 
-      <ImportarCurriculo aoLido={aplicarLeituraCurriculo} />
+      <ImportarCurriculo documentoAtual={docs("curriculo_anexo_v")[0]} aoLido={aplicarLeituraCurriculo} aoMudar={ctx.recarregar} />
 
       <h3>Graduação</h3>
       <p className="sub">
