@@ -3,7 +3,12 @@
 > Arquivo de contexto para o Claude Code. Colocar na raiz do repositório.
 > Coloque também o edital original em `docs/Minuta_Edital_PSS_COMURG_2026_v2.docx`: ele é a **fonte de verdade** das regras. Se este arquivo divergir do edital, o edital vence e este arquivo deve ser corrigido.
 >
-> **Versão do edital considerada:** minuta v2 atualizada em 21/09/2026 (mudanças em relação à anterior: item 4.9 e Capítulo V reescritos, com regras detalhadas de Pix e de comprovação de documentos). A numeração dos itens 5.x mudou; use a numeração desta versão.
+> **Versão do edital considerada:** minuta v2 atualizada em 22/09/2026 08:07 (arquivo "Minuta_Edital_PSS_COMURG_2026_v2 - 22-09-2026-08-07.docx", recebido por WhatsApp e salvo em `docs/`). Mudanças em relação à versão de 21/09/2026 (conferidas por diff completo do texto):
+> 1. **Anexo I, item 1 (Formação Acadêmica Adicional):** Especialização/MBA deixou de ter limite de quantidade (antes: até 6,0 pts / máx. 3 títulos) — agora "sem limite de quantidade", respeitando só o teto global de 10,0 pts do critério. Mestrado e doutorado **não mudaram** (máx. 1 título cada). Cursos/Certificações (item 2) e Experiência (item 3) **não mudaram**. Já corrigido no motor de regras (migração `20260922160000_formacao_especializacao_sem_limite.sql`).
+> 2. **Item 4.9 (chave Pix):** o texto agora cita a chave `pss2026comurg@comurg.com.br` — o sistema já usava essa chave (`interno.configuracao`), então a divergência antes registrada aqui está resolvida.
+> 3. **Item 6.5.1 (convocação para entrevista):** de "até 5 candidatos por vaga" para **"até 3 candidatos por vaga"**. Ainda não implementado no sistema (Fase 3/4); ajustar quando a convocação for construída.
+> 4. **Anexo IV (cronograma):** entrevistas e etapas seguintes foram antecipadas (entrevistas agora `03/11 a 12/11`, resultado final `até 25/11`, convocações `a partir de 26/11` — era `11/12` e `12/12`). Não afeta o sistema hoje (essas telas ainda não existem), mas atualizar quando forem construídas.
+> 5. **Anexo III (Matriz de Comprovação Documental):** reescrito com uma linha por tipo de documento (antes era mais resumido); não introduz exigência nova além do que já está nas seções 8.1.2 e 8.4 deste arquivo.
 
 ---
 
@@ -46,12 +51,14 @@ A plataforma deve:
 | Recurso | 23, 24 e 27/10 |
 | Julgamento dos recursos | 28, 29 e 30/10 |
 | Resultado definitivo AC + convocação p/ entrevista | até 31/10 |
-| Entrevistas | 03/11 a 28/11 |
-| Resultado preliminar das entrevistas | até 02/12 |
-| Recurso | 03, 04 e 05/12 |
-| Julgamento dos recursos | 08, 09 e 10/12 |
-| Resultado final + homologação | até 11/12 |
-| Início das convocações | a partir de 12/12 |
+| Entrevistas | 03/11 a 12/11 |
+| Resultado preliminar das entrevistas | até 14/11 |
+| Recurso | 17, 18 e 19/11 |
+| Julgamento dos recursos | 20, 21 e 24/11 |
+| Resultado final + homologação | até 25/11 |
+| Início das convocações | a partir de 26/11 |
+
+> Datas da fase de entrevista/recursos/resultado final antecipadas no edital atualizado em 22/09/2026 (antes: 28/11, 02/12, 05/12, 10/12, 11/12, 12/12, respectivamente). As datas de inscrição (24/09 a 07/10) não mudaram.
 
 **Prioridade de entrega:** o MVP de inscrição (formulário, upload, Pix, trava de prazo) precisa estar no ar em 24/09/2026. O motor de regras e a extração por IA podem ser entregues durante o período de inscrição e devem estar prontos e testados antes de 14/10.
 
@@ -158,7 +165,7 @@ Tipos de documento (enum): `identidade`, `cpf`, `diploma_graduacao`, `diploma_po
 
 ### 8.1.1 Pagamento via Pix (4.9 a 4.9.5)
 
-- Chave: **pss2026comurg@comurg.com.br** (e-mail), informada pelo responsável em 21/09/2026. **Atenção:** a minuta v2 do edital (item 4.9) ainda cita a chave CNPJ nº 00.418.160/0001-55; o edital precisa ser ajustado. A chave fica em `interno.configuracao` (`pix_chave`), não no código.
+- Chave: **pss2026comurg@comurg.com.br** (e-mail), informada pelo responsável em 21/09/2026. A minuta atualizada em 22/09/2026 já cita essa chave no item 4.9 (a divergência com o CNPJ, registrada aqui até então, está resolvida). A chave fica em `interno.configuracao` (`pix_chave`), não no código.
 - O Pix deve ser feito **pelo próprio candidato**, de conta de sua titularidade, com nome completo e CPF. **Pagamento por terceiros não é aceito** (4.9.1).
 - O comprovante deve conter: nome completo e CPF do pagador, data e horário, valor e **código E2E** (4.9.2).
 - Anexo **obrigatório** ao concluir a inscrição, em PDF, JPG ou PNG legível (4.9.3). Sem comprovante, o backend não conclui a inscrição (exceto quando houver pedido de isenção em análise).
@@ -250,7 +257,7 @@ Resumo das listas:
 
 | Título | Pontos | Limite |
 |---|---|---|
-| Especialização/MBA (≥360h) | 2,0 | até 6,0 (máx. 3 títulos) |
+| Especialização/MBA (≥360h) | 2,0 | sem limite de quantidade (edital atualizado 22/09/2026) |
 | Mestrado | 3,0 | até 3,0 (1 título) |
 | Doutorado | 4,0 | até 4,0 (1 título) |
 
@@ -282,7 +289,7 @@ A pontuação é por **degrau**, não proporcional. **Os limites das faixas se s
 
 - **PF = AC + ET** (máx. 100). AC máx. 60; ET máx. 40.
 - **Habilitação** é binária (HABILITADO / INABILITADO), sem pontos; falhar em qualquer requisito obrigatório elimina (6.3.3).
-- **Convocação para entrevista:** AC ≥ **35 pontos**; até **5 candidatos por vaga** do Grupo/Nível (quantidade de vagas do item 2.1), **incluindo empatados na última posição**. Abaixo de 35 não é convocado, mesmo que sobrem vagas na fila (6.4.4 e 6.5.1).
+- **Convocação para entrevista:** AC ≥ **35 pontos**; até **3 candidatos por vaga** do Grupo/Nível (quantidade de vagas do item 2.1) — reduzido de 5 para 3 no edital atualizado em 22/09/2026 —, **incluindo empatados na última posição**. Abaixo de 35 não é convocado, mesmo que sobrem vagas na fila (6.4.4 e 6.5.1).
 - **Entrevista (ET, máx. 40):** banca de no mínimo 3 avaliadores; cada um dá nota individual com justificativa; a nota final é a **média aritmética**. Eliminado quem tiver **menos de 15 pontos**, faltar ou fraudar (6.5.7).
 
   | Competência | Máx. |

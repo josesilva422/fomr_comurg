@@ -230,6 +230,22 @@ begin
   perform pg_temp.admin();
   select av.pontos_formacao::text into p from interno.calcular_avaliacao(ia) av;
   t := t || pg_temp.igual(p, '0.00', 'título sem documento não pontua no motor de regras');
+
+  -- Especialização/MBA sem limite de quantidade (edital atualizado 22/09/2026, Anexo I item 1 — migração
+  -- 20260922160000_formacao_especializacao_sem_limite.sql). Antes, o 4º título já não pontuava (limite de 3,
+  -- até 6,0 pts); agora só o teto global de 10,0 pts do critério limita a soma.
+  declare
+    v_tit uuid;
+  begin
+    for nf in 1..6 loop
+      insert into publico.titulos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+        values (ia, 'especializacao', 'Pós ' || nf, 'FGV', 400, '2020-01-01') returning id into v_tit;
+      insert into publico.documentos (inscricao_id, tipo, titulo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+        values (ia, 'diploma_pos', v_tit, ia || '/diploma_pos/' || gen_random_uuid() || '.pdf', 'pos.pdf', repeat(nf::text, 64), 'application/pdf', 1000);
+    end loop;
+  end;
+  select av.pontos_formacao::text into p from interno.calcular_avaliacao(ia) av;
+  t := t || pg_temp.igual(p, '10.00', '6 especializações com documento: sem limite de quantidade, capado só pelo teto global de 10,0 (não mais em 6,00 pelo antigo limite de 3 títulos)');
   perform pg_temp.como(ua, 'a@teste.local');
   select (submetida_em is not null)::text into p from publico.inscricoes;
   t := t || pg_temp.igual(p, 'true', 'submetida_em preenchido pelo servidor');
