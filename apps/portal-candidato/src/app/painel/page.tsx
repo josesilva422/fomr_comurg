@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AvaliacaoResumo } from "@/lib/pontuacao";
-import { PainelTabela } from "./PainelTabela";
+import { PainelLista } from "./PainelLista";
 
 // Atalho de hoje (ver docs/decisoes-pendentes.md, P5): o painel roda nas mesmas rotas/login do portal
 // do candidato, liberado só para quem está em interno.usuarios_internos. O CLAUDE.md pede duas áreas
@@ -12,7 +12,7 @@ export default async function PainelPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
-  if (!claims) redirect("/entrar");
+  if (!claims) redirect("/painel/entrar");
 
   const { data: souComissao } = await supabase.schema("painel").rpc("sou_da_comissao");
   if (!souComissao) {
@@ -38,7 +38,7 @@ export default async function PainelPage() {
           <h2>Análise curricular — resultado calculado</h2>
           <p className="lead">
             Pontuação calculada automaticamente pelo motor de regras (rascunho). Nenhum resultado é definitivo até
-            revisão e aprovação da Comissão. Clique numa linha para ver o detalhamento por critério.
+            revisão e aprovação da Comissão. Clique num candidato para ver o detalhamento por critério.
           </p>
         </header>
         {error ? (
@@ -46,7 +46,7 @@ export default async function PainelPage() {
             <p>Não foi possível carregar os dados: {error.message}</p>
           </div>
         ) : (
-          <PainelTabela avaliacoes={(avaliacoes as AvaliacaoResumo[] | null) ?? []} />
+          <PainelLista avaliacoes={(avaliacoes as AvaliacaoResumo[] | null) ?? []} />
         )}
       </div>
     </main>

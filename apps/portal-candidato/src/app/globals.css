@@ -306,3 +306,57 @@ summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px}
 .codigo{letter-spacing:8px;font-size:24px!important;text-align:center;font-variant-numeric:tabular-nums}
 .acoes-form{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
 .em-breve{border:1.5px dashed var(--line-strong);border-radius:var(--radius);padding:26px;text-align:center;color:var(--muted)}
+
+/* ---- Painel da Comissão ---- */
+.painel-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;justify-content:space-between}
+.painel-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.painel-busca{min-width:220px}
+.tabela-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+table.tabela{width:100%;border-collapse:collapse;font-size:14px;background:var(--surface)}
+table.tabela th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+table.tabela td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tabela tbody tr{cursor:pointer;transition:background .1s}
+table.tabela tbody tr:hover{background:var(--surface-2)}
+table.tabela tbody tr:last-child td{border-bottom:0}
+.col-total{font-weight:800;font-size:16px;color:var(--brand);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.pill-ok{background:var(--ok-bg);color:var(--ok-text);border:1px solid var(--ok-line)}
+.pill-err{background:var(--err-bg);color:var(--err);border:1px solid var(--err-line)}
+.pill-muted{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+
+.voltar-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:14px;text-decoration:none;margin-bottom:16px}
+.voltar-link:hover{color:var(--brand)}
+
+.resumo-candidato{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+.resumo-total{text-align:right}
+.resumo-total .num{font-size:40px;font-weight:800;color:var(--brand);line-height:1}
+.resumo-total small{color:var(--muted)}
+
+.criterio{margin-bottom:22px}
+.criterio-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.criterio-head h4{font-size:15px}
+.criterio-head .valor{font-size:14px;font-weight:700;color:var(--text)}
+.barra{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.barra i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .3s}
+
+.linha-item{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;background:var(--surface)}
+.linha-item.rejeitado{border-color:var(--err-line);background:var(--err-bg)}
+.linha-item-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.linha-item-head strong{font-size:14px}
+.linha-item small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.linha-item .motivo{font-size:13px;color:var(--err);margin-top:6px}
+.linha-item .aviso{font-size:13px;color:var(--warn-text);margin-top:6px}
+
+.comparacao{display:grid;gap:8px;margin-top:10px}
+.comparacao-linha{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
+@media(min-width:640px){.comparacao-linha{grid-template-columns:160px 1fr}}
+.comparacao-campo{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.comparacao-linha.confere{border-color:var(--ok-line);background:var(--ok-bg)}
+.comparacao-linha.nao-confere{border-color:var(--err-line);background:var(--err-bg)}
+.comparacao-linha.nao-mencionado{border-color:var(--warn-line);background:var(--warn-bg)}
+.comparacao-valores{display:grid;gap:4px;font-size:13px}
+.comparacao-valores b{font-weight:700}
+
+.login-passos{display:flex;gap:8px;justify-content:center;margin-bottom:22px}
+.login-passos span{width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+.login-passos span.ativo{background:var(--brand);width:22px;border-radius:99px}
