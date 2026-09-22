@@ -39,12 +39,15 @@ const PONTOS_MINIMOS_ENTREVISTA = 35; // edital, item 6.4.4
 interface Comparacao {
   campo: string;
   documento_diz: string | null;
+  pagina: number | null;
   confere: "sim" | "nao" | "nao_mencionado";
 }
 interface VerificacaoIA {
   legivel: boolean;
   comparacoes: Comparacao[];
   observacoes_gerais: string | null;
+  // Opcional: extrações feitas antes de 22/09/2026 (versão v2 do prompt) não têm esse campo.
+  indicios_adulteracao?: { suspeita: boolean; detalhes: string | null };
   confianca_geral: number;
 }
 interface Extracao {
@@ -360,12 +363,21 @@ function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
       {extracao ? (
         <div style={{ marginTop: 12 }}>
           {!extracao.json_extraido.legivel ? <p className="motivo">⚠ A IA sinalizou que este documento está ilegível ou insuficiente para conferência.</p> : null}
+          {extracao.json_extraido.indicios_adulteracao?.suspeita ? (
+            <p className="motivo">
+              ⚠ Indício de possível adulteração — <b>não é uma conclusão, só um ponto para a Comissão olhar com atenção</b>:{" "}
+              {extracao.json_extraido.indicios_adulteracao.detalhes ?? "sem detalhes."}
+            </p>
+          ) : null}
           <div className="comparacao">
             {extracao.json_extraido.comparacoes.map((c, i) => (
               <div key={i} className={`comparacao-linha ${classePorConfere[c.confere]}`}>
                 <div className="comparacao-campo">{c.campo}</div>
                 <div className="comparacao-valores">
-                  <span>{rotuloPorConfere[c.confere]}</span>
+                  <span>
+                    {rotuloPorConfere[c.confere]}
+                    {c.pagina != null ? ` · pág. ${c.pagina}` : ""}
+                  </span>
                   <span>
                     <b>O documento diz:</b> {c.documento_diz ?? <em>nada sobre isso</em>}
                   </span>

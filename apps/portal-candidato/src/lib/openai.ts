@@ -10,7 +10,7 @@
 // 22/09/2026. Testado pela primeira vez em 22/09/2026 com a chave fornecida pelo responsável.
 
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
-const VERSAO_PROMPT = "verificacao-documento-v2-2026-09-22";
+const VERSAO_PROMPT = "verificacao-documento-v3-2026-09-22";
 
 export interface CampoDeclarado {
   campo: string;
@@ -29,16 +29,27 @@ const SCHEMA_VERIFICACAO = {
         properties: {
           campo: { type: "string", description: "Repita exatamente o nome do campo recebido" },
           documento_diz: { type: ["string", "null"], description: "O que o documento realmente afirma sobre esse assunto, com as palavras dele (ou próximas). Null se o documento não toca no assunto." },
+          pagina: { type: ["integer", "null"], description: "Número da página do documento (a primeira página é 1) onde está o trecho citado em documento_diz. Null se documento_diz for null, se o arquivo for uma imagem única sem páginas, ou se não for possível determinar a página." },
           confere: { type: "string", enum: ["sim", "nao", "nao_mencionado"], description: "sim = o documento confirma o valor declarado; nao = o documento diz algo diferente/contraditório; nao_mencionado = o documento não fala sobre isso" },
         },
-        required: ["campo", "documento_diz", "confere"],
+        required: ["campo", "documento_diz", "pagina", "confere"],
         additionalProperties: false,
       },
     },
     observacoes_gerais: { type: ["string", "null"], description: "Algo relevante que não coube nas comparações (ex.: rasura, documento sem assinatura, papel não timbrado)." },
+    indicios_adulteracao: {
+      type: "object",
+      description: "Só um APONTAMENTO para a Comissão avaliar — a IA nunca decide se houve fraude (decisão sempre humana, item 14.3 do edital).",
+      properties: {
+        suspeita: { type: "boolean", description: "true se notar algo visualmente inconsistente com o resto do documento" },
+        detalhes: { type: ["string", "null"], description: "O que exatamente chamou atenção (ex.: fonte/tamanho de letra diferente nesse campo, alinhamento fora do padrão, cor de texto distinta, rasura, sobreposição, recorte). Null se suspeita for false." },
+      },
+      required: ["suspeita", "detalhes"],
+      additionalProperties: false,
+    },
     confianca_geral: { type: "number", description: "0 a 1" },
   },
-  required: ["legivel", "comparacoes", "observacoes_gerais", "confianca_geral"],
+  required: ["legivel", "comparacoes", "observacoes_gerais", "indicios_adulteracao", "confianca_geral"],
   additionalProperties: false,
 } as const;
 
@@ -57,15 +68,24 @@ Para CADA um dos itens acima, na mesma ordem, diga:
 - "documento_diz": cite o que o documento REALMENTE afirma sobre aquele assunto, com palavras dele. Se o
   documento não menciona nada relacionado, use null — não invente, não deduza, não complete por dedução ou
   bom senso. Só marque "sim" se estiver escrito ou representado de forma inequívoca no documento.
+- "pagina": em qual página do documento está esse trecho (a primeira página é 1). Use null se documento_diz for
+  null, se o arquivo não tiver conceito de página (uma única imagem), ou se não der para determinar com certeza.
 Marque "legivel": false se o documento estiver ilegível, cortado, ou genérico demais para checar qualquer campo
 com segurança. Em "observacoes_gerais", aponte algo relevante fora das comparações (falta de assinatura, papel
-sem timbre, carimbo ausente, indício de edição), se houver.`;
+sem timbre, carimbo ausente), se houver.
+
+Em "indicios_adulteracao", repare se algum campo do documento parece visualmente diferente do resto — fonte ou
+tamanho de letra que destoa, alinhamento fora do padrão, cor de texto diferente, região com aspecto de
+recorte/colagem, sobreposição ou rasura. Isso NÃO é um veredito de fraude (só a Comissão decide isso, olhando o
+documento) — é só um apontamento para ela olhar com mais atenção. Marque "suspeita": true apenas quando notar
+algo concreto e descreva em "detalhes"; na dúvida, ou se o documento parecer uniforme, marque false.`;
 }
 
 export interface ResultadoVerificacao {
   legivel: boolean;
-  comparacoes: { campo: string; documento_diz: string | null; confere: "sim" | "nao" | "nao_mencionado" }[];
+  comparacoes: { campo: string; documento_diz: string | null; pagina: number | null; confere: "sim" | "nao" | "nao_mencionado" }[];
   observacoes_gerais: string | null;
+  indicios_adulteracao: { suspeita: boolean; detalhes: string | null };
   confianca_geral: number;
 }
 
@@ -202,7 +222,22 @@ Regras:
 - "ativo": marque true apenas para o vínculo mais recente, se o currículo indicar que é o atual (ex.: "atual",
   "presente", "até o momento", sem data de fim).
 - Não invente CPF, endereço ou dados que não seja formação/experiência. Não julgue se o candidato está apto;
-  isso não é sua tarefa aqui.`;
+  isso não é sua tarefa aqui.
+
+Diferença entre "titulos" e "cursos" (não confunda os dois — são pontuados de formas diferentes):
+- Só entra em "titulos": pós-graduação lato sensu (especialização/MBA — só conta como título se tiver pelo
+  menos 360 horas; se o currículo mostrar menos horas que isso, ou não informar a carga horária, ainda assim
+  classifique como "especializacao" em "titulos", que o sistema decide depois se pontua ou não), mestrado
+  ou doutorado — sempre um diploma/certificado de pós-graduação de uma instituição de ensino.
+- Vai para "cursos" (tipo "curso"): qualquer curso complementar, workshop, treinamento, curso livre ou de
+  extensão, curso de plataforma (ex.: Alura, Coursera, ENAP, FGV Online) — mesmo que o nome do curso contenha
+  palavras como "avançado", "profissional" ou pareça importante. Um curso NÃO é um título só por ter nome
+  pomposo.
+- Vai para "cursos" (tipo "certificacao"): certificações profissionais reconhecidas (PMP, PgMP, PRINCE2, IPMA
+  ou similares) — essas têm número de credencial e código de verificação; preencha "numero_credencial" e
+  "codigo_verificacao" quando o currículo trouxer esses dados, ou null se não trouxer.
+- Na dúvida entre título e curso complementar, prefira "cursos" — é mais seguro classificar para baixo do que
+  inflar um curso comum como se fosse pós-graduação.`;
 
 export interface DadosCurriculo {
   graduacao: { curso: string | null; instituicao: string | null; grau: "bacharelado" | "licenciatura" | "tecnologico" | null; data_conclusao: string | null } | null;
