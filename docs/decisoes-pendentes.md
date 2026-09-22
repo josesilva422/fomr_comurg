@@ -14,6 +14,10 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | D6 | **Chave Pix da taxa: `pss2026comurg@comurg.com.br`** (e-mail) | Responsável, 21/09/2026 | `interno.configuracao` + `publico.dados_pagamento()`; **contradiz a minuta v2, item 4.9 (chave CNPJ)**, ver P2 |
 | D7 | Nomes oficiais dos grupos: A "Analista de Projetos e Obras", B "Governança de Projetos", C "Analista de Licitações e Conformidade Processual" (edital, itens 3.2 a 3.4) | Lidos do edital | protótipo e app; resolve N6 |
 | D8 | Lista de graduações do seed conferida **programaticamente contra o edital** (9 listas, 339 linhas, idênticas) | 21/09/2026 | `supabase/seed/gerar_cursos_aceitos.py` |
+| D9 | **Sem plano Pro do Supabase** (reconfirmado). Se passar de ~100 candidatos, os arquivos vão para um bucket S3-compatível em nome da COMURG (conta a abrir); enquanto isso, o Supabase Storage segue como destino, atrás de uma camada única no código para trocar sem refazer telas. | Responsável, 21/09/2026 | `src/lib/armazenamento.ts` (comentário no topo) |
+| D10 | **Motor de regras (pontuação da análise curricular) construído hoje**, em SQL no schema `interno`, com um **painel mínimo** para a Comissão ver o resultado por candidato | Responsável, 22/09/2026 | `supabase/migrations/20260922*`, `apps/portal-candidato/src/app/painel` |
+| D11 | **Extração de documentos por IA usa a OpenAI** (não a Anthropic). O responsável já tem conta e vai gerar a chave. | Responsável, 22/09/2026 | `src/lib/openai.ts`, `src/app/api/extrair-documento`; **ainda sem a chave, código não testado (P6)** |
+| D12 | A pontuação **precisava aparecer numa tela hoje**, mesmo sem o painel interno (app separado) existir ainda | Responsável, 22/09/2026 | painel roda dentro do mesmo app do portal, só para quem está na lista `interno.usuarios_internos`; ver P5 |
 
 ## Pendências novas (21/09/2026)
 
@@ -23,6 +27,9 @@ Regra do projeto: **não inventar**. Cada linha abaixo trava ou influencia códi
 | P2 | **Edital, item 4.9, ainda cita a chave CNPJ.** A versão anterior da minuta dizia "chave indicada na plataforma de inscrição". | Ajustar o edital para a chave nova (ou voltar ao texto "indicada na plataforma", que dispensa retificar se a chave mudar). Também revisar 4.9.4 (verificação da chave). |
 | P3 | **Correção de erros depois do envio definitivo** (CPF digitado errado, arquivo trocado). Hoje ninguém corrige. | Definir um canal formal via Comissão (pedido justificado, com registro), coerente com 5.5.3. |
 | P4 | Item 4.10 diz que o pedido de isenção é feito "exclusivamente pelo canal oficial de **e-mail**", mas o sistema recebe o pedido na plataforma. | Ajustar o edital (já era a pendência 3 do CLAUDE.md). |
+| P5 | **O painel de hoje quebra o princípio 6 do CLAUDE.md** ("duas áreas separadas", app e subdomínio próprios, MFA obrigatório): por prazo, ele roda nas mesmas rotas e no mesmo login (código por e-mail) do portal do candidato, liberado só para quem está na tabela `interno.usuarios_internos`. Candidatos que não estão nessa lista recebem "Acesso restrito", mas a separação de fato (app/subdomínio/MFA) não existe ainda. | **Dívida técnica a resolver antes de dar acesso a mais gente da Comissão.** Para você testar hoje: faça login uma vez em `/entrar` com o e-mail que vai usar, me avise, e eu insiro esse e-mail em `interno.usuarios_internos`. |
+| P6 | **Extração de documentos por IA não foi testada** (falta `OPENAI_API_KEY`, D11). O código está pronto (`src/lib/openai.ts`, rota `/api/extrair-documento`, botão "Analisar com IA" no painel) mas o formato exato da resposta da OpenAI só foi conferido pela documentação, não por uma chamada real. | Testar assim que houver a chave; corrigir o parsing se o formato vier diferente do esperado. |
+| P7 | **Correlação de títulos e cursos com as atribuições do Grupo** (Anexo I, itens 1 e 2: "diretamente relacionados") não é verificada pelo motor — ele pontua e sinaliza "exige confirmação da Comissão" em cada item. Da mesma forma, o **catálogo de cursos pontuáveis** (Anexo I, item 2.1) é comparado por trecho de texto (aproximado); cursos fora dele pontuam do mesmo jeito, só com a sinalização "fora do catálogo". | Consistente com o edital ("lista exemplificativa... mediante deliberação motivada da Comissão", item 2.1) — decisão de correlação continua sempre humana. Nenhuma ação necessária, só ciência. |
 
 ## Novas, surgidas ao construir a Fase 1
 
@@ -49,10 +56,10 @@ O que **não** depende do plano e já está pronto: RLS em todas as tabelas, per
 
 Continuam em aberto; só afetam as fases seguintes (motor de regras, pagamentos, entrevista), exceto onde indicado.
 
-1. Faixas de experiência com limites sobrepostos (Anexo I, item 3) e arredondamento de meses.
+1. Faixas de experiência com limites sobrepostos (Anexo I, item 3) e arredondamento de meses. *(O motor de regras de hoje assumiu a convenção (0,12], (12,36], (36,60], (60,∞) meses — ver D10. Confirmar com a Comissão.)*
 2. **Isenção × prazo de pagamento**: decisão da isenção sai em 09/10, inscrições encerram em 07/10 e o item 4.9.5 só aceita comprovante dentro do período. *(Já afeta a Fase 1: hoje o status é `aguardando_isencao`, sem janela extra de pagamento.)*
 3. Pedido de isenção por e-mail (texto do edital) versus pela plataforma (implementado assim).
-4. Equivalência da pós no Pleno (5 anos substituem a pós, mas o mínimo já é 4).
+4. Equivalência da pós no Pleno (5 anos substituem a pós, mas o mínimo já é 4). *(O motor de hoje assumiu: título OU 5 anos de experiência OU, só no Grupo B, certificação PMP/PgMP/PRINCE2/IPMA ativa — qualquer um libera a habilitação, sem descontar pontos do título. Ver D10. Confirmar com a Comissão.)*
 5. "Tecnologia da Informação" no Grupo B versus exclusão de tecnólogo (5.1.6). *(Hoje a lista aceita o curso pelo nome; o grau tecnológico é sinalizado, não bloqueado.)*
 6. Cadastro de reserva do Pleno: 5 por grupo (tabela 2.1) ou 20 no total (item 11.1).
 7. Cláusula do edital sobre sistema assistido por IA. *(O texto de ciência no formulário é provisório.)*
