@@ -301,6 +301,8 @@ A pontuação é por **degrau**, não proporcional. **Os limites das faixas se s
   | Caso técnico / situação-problema | 5 |
   | Postura profissional e aderência | 5 |
 
+  **Situação atual (23/09/2026):** a entrevista acontece fora do sistema; a Comissão **lança as fichas** dos avaliadores no painel (`painel.salvar_ficha_entrevista`), e o sistema calcula ET, PF e a classificação com desempates (`painel.classificacao_final`) — ver D19/N8 em `docs/decisoes-pendentes.md`. O fluxo de fichas cegas com login por avaliador, abaixo, continua como evolução futura.
+
   **Fluxo no sistema:** cada avaliador preenche a **própria ficha** no painel (nota por competência + justificativa obrigatória + declaração). Fichas ficam **cegas entre si** até cada avaliador enviar a sua; depois de enviada, a ficha fica travada (correção só com justificativa e registro em auditoria). Se houver ficha em papel, o gestor pode transcrever e anexar a digitalização assinada. O sistema calcula a média, aplica o corte de 15 pontos e soma PF = AC + ET.
 
 Faixas do Anexo II: nas competências de peso 10, Insuficiente 0–3, Regular 4–6, Bom 7–8, Excelente 9–10. Nas de peso 5, Insuficiente 0–1, Regular 2–3, Bom 4, Excelente 5. A ficha exige justificativa por competência e declaração do avaliador.

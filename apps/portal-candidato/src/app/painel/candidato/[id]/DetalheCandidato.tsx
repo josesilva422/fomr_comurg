@@ -6,6 +6,7 @@ import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import { fmtMeses, type AvaliacaoDetalhada } from "@/lib/pontuacao";
 import { ROTULO_DOCUMENTO, type TipoDocumento } from "@/lib/tipos-inscricao";
 import type { Grupo, Nivel } from "@/lib/tipos";
+import { EntrevistaSecao } from "./EntrevistaSecao";
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 const fmtData = (iso: string | null) => (iso ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(iso)) : "—");
@@ -269,6 +270,9 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
           ))}
         </ul>
       </details>
+
+      <hr className="divider" />
+      <EntrevistaSecao inscricaoId={inscricaoId} />
 
       <hr className="divider" />
       <DocumentosSecao inscricaoId={inscricaoId} />

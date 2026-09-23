@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { AvaliacaoResumo } from "@/lib/pontuacao";
+import Link from "next/link";
 import { PainelLista } from "./PainelLista";
 import { RelatorioRespostas } from "./RelatorioRespostas";
 
@@ -33,6 +34,11 @@ export default async function PainelPage() {
 
   return (
     <main className="wrap" style={{ padding: "24px 16px 64px" }}>
+      <div style={{ margin: "0 0 16px" }}>
+        <Link href="/painel/classificacao" className="btn btn-primary">
+          Classificação final (AC + entrevista)
+        </Link>
+      </div>
       <RelatorioRespostas />
       <div className="card">
         <header className="step-head">
