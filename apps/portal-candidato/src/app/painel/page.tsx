@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AvaliacaoResumo, CronogramaItem } from "@/lib/pontuacao";
+import type { AvaliacaoResumo } from "@/lib/pontuacao";
 import { PainelLista } from "./PainelLista";
-import { Cronograma } from "./Cronograma";
 import { RelatorioRespostas } from "./RelatorioRespostas";
 
 // Atalho de hoje (ver docs/decisoes-pendentes.md, P5): o painel roda nas mesmas rotas/login do portal
@@ -31,11 +30,9 @@ export default async function PainelPage() {
   }
 
   const { data: avaliacoes, error } = await supabase.schema("painel").rpc("listar_avaliacoes");
-  const { data: cronograma } = await supabase.schema("painel").rpc("listar_cronograma");
 
   return (
     <main className="wrap" style={{ padding: "24px 16px 64px" }}>
-      <Cronograma itens={(cronograma as CronogramaItem[] | null) ?? []} />
       <RelatorioRespostas />
       <div className="card">
         <header className="step-head">

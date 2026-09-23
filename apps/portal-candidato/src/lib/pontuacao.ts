@@ -23,14 +23,6 @@ export interface AvaliacaoResumo {
   convocado: boolean;
 }
 
-export interface CronogramaItem {
-  ordem: number;
-  evento: string;
-  data_inicio: string | null;
-  data_fim: string | null;
-  detalhe: string | null;
-}
-
 export interface ItemFormacao {
   id: string;
   tipo: string;
