@@ -130,6 +130,35 @@ begin
     end if;
   end;
 
+  ---------------------------------------------------------------- painel: relatório de respostas (Excel/PDF)
+  perform pg_temp.como(ustaff, 'staff@teste.local');
+  select count(*) into n from painel.relatorio_respostas('A', 'junior', null) r where r ->> 'nome' like 'Convocacao %';
+  t := t || pg_temp.igual(n::text, '6', 'relatório por Grupo A/Júnior traz os 6 candidatos enviados');
+  select r ->> 'nome' into p from painel.relatorio_respostas(null, null, '123.456.781-43') r;
+  t := t || pg_temp.igual(p, 'Convocacao A Primeiro', 'relatório filtrado por CPF (com máscara) acha o candidato');
+  select jsonb_array_length(r -> 'titulos')::text into p from painel.relatorio_respostas(null, null, 'Convocacao A Primeiro') r;
+  t := t || pg_temp.igual(p, '5', 'relatório traz os 5 títulos declarados do candidato');
+  begin
+    perform painel.relatorio_respostas();
+    t := t || array['relatório sem nenhum filtro -> deveria falhar e passou'];
+  exception when others then
+    if sqlerrm not ilike '%ao menos um filtro%' then
+      t := t || array['relatório sem filtro -> falhou com outro erro: ' || sqlerrm];
+    end if;
+  end;
+  perform pg_temp.como(ua, 'ea@teste.local');
+  begin
+    perform painel.relatorio_respostas('A', null, null);
+    t := t || array['candidato comum baixou relatório -> deveria falhar e passou'];
+  exception when others then
+    if sqlerrm not ilike '%Acesso restrito%' then
+      t := t || array['candidato comum no relatório -> falhou com outro erro: ' || sqlerrm];
+    end if;
+  end;
+  perform pg_temp.admin();
+  select count(*) into n from interno.auditoria where acao = 'EXPORTAR_RELATORIO' and ator_id = ustaff;
+  t := t || pg_temp.igual(n::text, '3', 'cada geração do relatório fica na auditoria (3 gerações válidas do staff)');
+
   ---------------------------------------------------------------- painel: cronograma
   perform pg_temp.admin();
   perform pg_temp.como(ustaff, 'staff@teste.local');
