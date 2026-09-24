@@ -20,6 +20,12 @@ const ITENS = [
     ],
   },
   {
+    grupo: "Acesso",
+    links: [
+      { href: "/painel/usuarios", rotulo: "Usuários do painel", dica: "Quem acessa e quem avaliou", ativo: (p: string) => p.startsWith("/painel/usuarios") },
+    ],
+  },
+  {
     grupo: "Relatórios",
     links: [
       { href: "/painel/relatorios", rotulo: "Respostas do formulário", dica: "Baixar em Excel ou PDF", ativo: (p: string) => p.startsWith("/painel/relatorios") },
