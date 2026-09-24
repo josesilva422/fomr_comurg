@@ -189,7 +189,7 @@ Resultado de qualquer divergência: status `divergente`, fila de revisão humana
 ### 8.1.2 Comprovação de formação (5.1 e 5.2)
 
 - **Diploma de graduação:** requisito de elegibilidade; apresentado **frente e verso**, legível, com nome completo, CPF, curso, **data de colação de grau**, instituição e assinatura do responsável institucional (5.1.1).
-- **Diploma digital emitido a partir de 2022:** deve ter QR Code ou código de autenticação válido, verificado pela Comissão no portal de Diplomas Digitais do MEC; **ausência de código válido = inabilitação** (5.1.2).
+- **Diploma digital:** deve possuir mecanismo idôneo de validação de autenticidade — código de validação, assinatura digital, QR Code ou outro mecanismo oficial (5.1.2 do **edital publicado**; a minuta de 22/09 exigia QR/código). O formulário não trava mais por falta de código; o campo é opcional e a conferência é da Comissão.
 - **e-MEC:** a Comissão verifica reconhecimento do curso e credenciamento da instituição; sem reconhecimento ativo na data de conclusão, o diploma não vale (5.1.3).
 - **Certificado provisório:** só com histórico escolar com registro de colação de grau e carimbo da instituição (5.1.4).
 - **Diploma estrangeiro:** revalidado por universidade pública brasileira (Res. CNE/CES nº 1/2021) (5.1.5).

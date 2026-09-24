@@ -106,7 +106,7 @@ export function montarSecoes(r: RegistroRelatorio): Secao[] {
         { pergunta: "Instituição de ensino", resposta: texto(r.instituicao_graduacao) },
         { pergunta: "Data de colação de grau", resposta: fmtData(r.data_colacao) },
         { pergunta: "Formato do diploma", resposta: r.formato_diploma ? (FORMATO[r.formato_diploma] ?? r.formato_diploma) : NAO_INFORMADO },
-        { pergunta: "Código de autenticação do diploma digital", resposta: texto(r.codigo_diploma_digital) },
+        { pergunta: "Código, QR Code ou endereço de validação do diploma digital (opcional)", resposta: texto(r.codigo_diploma_digital) },
         { pergunta: "Certificado provisório (com histórico escolar)?", resposta: simNao(r.diploma_provisorio) },
         { pergunta: "Diploma obtido no exterior?", resposta: simNao(r.diploma_exterior) },
         {

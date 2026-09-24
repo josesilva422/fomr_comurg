@@ -88,7 +88,6 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
     if (!colacao) e.colacao = "Informe a data da colação de grau.";
     else if (colacao > "2026-10-13") e.colacao = "A colação precisa ter ocorrido até 13/10/2026 (encerramento das inscrições).";
     if (!formato) e.formato = "Selecione uma opção.";
-    if (formato === "digital" && !codigo.trim()) e.codigo = "Informe o código de autenticação ou o endereço do QR Code.";
     setErros(e);
     if (Object.keys(e).length) return;
     setSalvando(true);
@@ -228,7 +227,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
           <select id="formato" value={formato} onChange={(e) => setFormato(e.target.value as Formato | "")}>
             <option value="">Selecione</option>
             <option value="fisico">Físico (papel)</option>
-            <option value="digital">Digital (com QR Code ou código de autenticação)</option>
+            <option value="digital">Digital (com validação eletrônica)</option>
           </select>
         </Campo>
       </div>
@@ -242,7 +241,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
       ) : null}
       {formato === "digital" ? (
         <div className="reveal">
-          <Campo id="codigo" rotulo="Código de autenticação ou endereço do QR Code" obrigatorio erro={erros.codigo} dica="Diplomas digitais emitidos a partir de 2022 sem código válido são inabilitados. A Comissão confere no portal de Diplomas Digitais do MEC.">
+          <Campo id="codigo" rotulo="Código de validação, QR Code ou endereço de verificação (se houver)" erro={erros.codigo} dica="O diploma digital precisa ter um mecanismo de validação de autenticidade: código de validação, assinatura digital, QR Code ou outro mecanismo oficial (item 5.1.2 do edital). Se o seu mostra um código ou link, informe aqui; se a validação é por assinatura digital, pode deixar em branco.">
             <input id="codigo" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Código ou link de validação" />
           </Campo>
         </div>

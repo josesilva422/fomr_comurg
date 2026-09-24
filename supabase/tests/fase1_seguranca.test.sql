@@ -204,7 +204,8 @@ begin
   t := t || pg_temp.igual((p like '%curso_nao_aceito%' and p like '%lideranca_ausente%')::text, 'true', 'Grupo A Sênior: curso não aceito e liderança ausente: ' || coalesce(p, 'nenhuma'));
   update publico.inscricoes set formato_diploma = 'digital', codigo_diploma_digital = null where id = ia;
   select string_agg(codigo, ',') into p from publico.verificar_inscricao();
-  t := t || pg_temp.igual((p like '%diploma_digital_sem_codigo%')::text, 'true', 'diploma digital sem código');
+  t := t || pg_temp.igual((coalesce(p, '') like '%diploma_digital_sem_codigo%')::text, 'false', 'diploma digital sem código NÃO trava mais (edital 5.1.2 admite assinatura digital, QR Code etc.)');
+  t := t || pg_temp.igual((p like '%curso_nao_aceito%')::text, 'true', 'com diploma digital as demais pendências continuam sendo apontadas (função íntegra)');
   update publico.inscricoes set cota_pcd = true, cota_racial = true, solicitou_isencao = true where id = ia;
   select string_agg(codigo, ',') into p from publico.verificar_inscricao();
   t := t || pg_temp.igual((p like '%laudo_ausente%' and p like '%autodeclaracao_ausente%' and p like '%isencao_incompleta%' and p not like '%comprovante_pix_ausente%')::text, 'true', 'reservas e isenção sem documentos: ' || coalesce(p, 'nenhuma'));

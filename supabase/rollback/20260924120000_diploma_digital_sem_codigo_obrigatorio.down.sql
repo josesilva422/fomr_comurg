@@ -1,0 +1,2 @@
+-- Para voltar a exigir o código do diploma digital, reaplique a definição de publico.verificar_inscricao() da migração
+-- 20260922150000_avisos_nao_bloqueantes_formacao.sql (contém o bloco 'diploma_digital_sem_codigo').
