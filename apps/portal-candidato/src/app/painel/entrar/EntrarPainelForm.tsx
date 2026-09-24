@@ -36,10 +36,18 @@ export function EntrarPainelForm() {
     const token = codigo.replace(/\D/g, "");
     if (token.length < 6) return setErro("Digite o código recebido por e-mail.");
     setEnviando(true);
-    const { error } = await createClient().auth.verifyOtp({ email: email.trim().toLowerCase(), token, type: "email" });
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token, type: "email" });
     if (error) {
       setEnviando(false);
       return setErro("Código inválido ou expirado. Peça um novo.");
+    }
+    // Libera a sessão no banco (exige a senha conferida antes). Sem isso o painel não abre dados.
+    const { data: liberada } = await supabase.schema("painel").rpc("concluir_login");
+    if (!liberada) {
+      await supabase.auth.signOut();
+      setEnviando(false);
+      return setErro("Acesso não liberado. Volte e informe e-mail e senha novamente.");
     }
     router.replace("/painel");
     router.refresh();
