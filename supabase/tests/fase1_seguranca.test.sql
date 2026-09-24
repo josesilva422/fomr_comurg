@@ -278,16 +278,16 @@ begin
   perform pg_temp.preenche(ib, false);
   insert into publico.documentos (inscricao_id, tipo, vinculo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
     values (ib, 'experiencia_ctps', vb, ib || '/experiencia_ctps/' || gen_random_uuid() || '.pdf', 'ctps-b.pdf', repeat('9', 64), 'application/pdf', 1000);
-  update publico.inscricoes set solicitou_isencao = true, justificativa_isencao = 'Situação de vulnerabilidade comprovada.' where id = ib;
+  update publico.inscricoes set solicitou_isencao = true, hipotese_isencao = 'doador_sangue' where id = ib;
   select string_agg(codigo, ',') into p from publico.verificar_inscricao();
   t := t || pg_temp.igual((p like '%isencao_incompleta%')::text, 'true', 'isenção sem requerimento anexado');
   insert into publico.documentos (inscricao_id, tipo, storage_path, nome_original, sha256, mime, tamanho_bytes)
     values (ib, 'requerimento_isencao', ib || '/requerimento_isencao/' || gen_random_uuid() || '.pdf', 'req.pdf', repeat('f', 64), 'application/pdf', 1000);
   select publico.submeter_inscricao() into st;
   t := t || pg_temp.igual(st::text, 'aguardando_isencao', 'com isenção o status é aguardando_isencao');
-  t := t || pg_temp.passa('update publico.inscricoes set justificativa_isencao = ''alterada depois''', 'B tenta alterar depois de enviar (RLS filtra: 0 linhas)');
-  select justificativa_isencao into p from publico.inscricoes;
-  t := t || pg_temp.igual(p, 'Situação de vulnerabilidade comprovada.', 'pedido de isenção enviado não foi alterado');
+  t := t || pg_temp.passa('update publico.inscricoes set hipotese_isencao = ''doador_medula''', 'B tenta alterar depois de enviar (RLS filtra: 0 linhas)');
+  select hipotese_isencao::text into p from publico.inscricoes;
+  t := t || pg_temp.igual(p, 'doador_sangue', 'pedido de isenção enviado não foi alterado');
 
   -- C: candidata ainda em rascunho (usada para testar a trava de prazo)
   perform pg_temp.como(uc, 'c@teste.local');

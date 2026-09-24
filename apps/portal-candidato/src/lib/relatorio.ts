@@ -27,7 +27,8 @@ export interface RegistroRelatorio {
   data_laudo: string | null;
   cota_racial: boolean;
   solicitou_isencao: boolean;
-  justificativa_isencao: string | null;
+  hipotese_isencao: string | null;
+  nis_isencao: string | null;
   declaracoes_aceitas_em: string | null;
   titulos: { tipo: string; denominacao: string; instituicao: string; carga_horaria: number; data_conclusao: string; tem_documento: boolean }[];
   cursos: {
@@ -65,6 +66,7 @@ const TIPO_TITULO: Record<string, string> = { especializacao: "Especialização/
 const TIPO_CURSO: Record<string, string> = { curso: "Curso", certificacao: "Certificação profissional" };
 const TIPO_VINCULO: Record<string, string> = { privado: "Setor privado", publico: "Setor público", autonomo: "Autônomo" };
 const GRAU: Record<string, string> = { bacharelado: "Bacharelado", licenciatura: "Licenciatura", tecnologico: "Tecnológico" };
+const HIPOTESE_ISENCAO: Record<string, string> = { cadunico: "Baixa renda (CadÚnico)", doador_sangue: "Doador de sangue", doador_medula: "Doador de medula óssea" };
 const FORMATO: Record<string, string> = { fisico: "Físico", digital: "Digital" };
 const STATUS: Record<string, string> = {
   submetida: "Enviada",
@@ -154,7 +156,8 @@ export function montarSecoes(r: RegistroRelatorio): Secao[] {
         { pergunta: "Data de emissão do laudo médico", resposta: fmtData(r.data_laudo) },
         { pergunta: "Concorre à vaga reservada para candidatos negros?", resposta: simNao(r.cota_racial) },
         { pergunta: "Solicitou isenção da taxa de inscrição?", resposta: simNao(r.solicitou_isencao) },
-        { pergunta: "Justificativa do pedido de isenção", resposta: texto(r.justificativa_isencao) },
+        { pergunta: "Hipótese de isenção (decreto municipal)", resposta: r.hipotese_isencao ? (HIPOTESE_ISENCAO[r.hipotese_isencao] ?? r.hipotese_isencao) : NAO_INFORMADO },
+        { pergunta: "NIS (baixa renda / CadÚnico)", resposta: texto(r.nis_isencao) },
       ],
     },
     {

@@ -40,6 +40,8 @@ export interface Inscricao {
   cota_racial: boolean;
   solicitou_isencao: boolean;
   justificativa_isencao: string | null;
+  hipotese_isencao: "cadunico" | "doador_sangue" | "doador_medula" | null;
+  nis_isencao: string | null;
   declaracoes_aceitas_em: string | null;
   submetida_em: string | null;
 }

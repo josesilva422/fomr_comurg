@@ -47,7 +47,7 @@ export const ROTULO_DOCUMENTO: Record<TipoDocumento, string> = {
   laudo_pcd: "Laudo médico",
   autodeclaracao_racial: "Autodeclaração racial",
   comprovante_pix: "Comprovante de pagamento (Pix)",
-  requerimento_isencao: "Requerimento de isenção",
+  requerimento_isencao: "Documentos comprobatórios da isenção",
   curriculo_anexo_v: "Currículo (Anexo V)",
 };
 
