@@ -14,6 +14,12 @@ const ITENS = [
     ],
   },
   {
+    grupo: "Inscrições",
+    links: [
+      { href: "/painel/isencoes", rotulo: "Isenção da taxa", dica: "Analisar documentos e decidir", ativo: (p: string) => p.startsWith("/painel/isencoes") },
+    ],
+  },
+  {
     grupo: "Relatórios",
     links: [
       { href: "/painel/relatorios", rotulo: "Respostas do formulário", dica: "Baixar em Excel ou PDF", ativo: (p: string) => p.startsWith("/painel/relatorios") },
