@@ -42,9 +42,8 @@ export function RelatorioRespostas() {
   }
 
   return (
-    <details className="card" style={{ marginBottom: 16 }}>
-      <summary style={{ cursor: "pointer", fontWeight: 700 }}>Baixar relatório de respostas (Excel e PDF)</summary>
-      <p className="hint" style={{ margin: "12px 0" }}>
+    <div>
+      <p className="hint" style={{ margin: "0 0 12px" }}>
         Para conferir o que cada candidato respondeu. Escolha ao menos um filtro — só entram inscrições já enviadas. O
         PDF traz uma página por candidato; o Excel traz uma coluna por pergunta e uma linha por candidato. Cada download
         fica registrado na auditoria.
@@ -82,6 +81,6 @@ export function RelatorioRespostas() {
           <p>{erro}</p>
         </div>
       ) : null}
-    </details>
+    </div>
   );
 }

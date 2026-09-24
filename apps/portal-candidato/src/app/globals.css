@@ -381,3 +381,39 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 
 .filtros-avancados{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .filtros-avancados select{min-height:36px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--text);font-size:14px}
+
+/* ===== Painel: menu lateral, abas por candidato e caixas que recolhem ===== */
+.painel-shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;max-width:1320px;margin:0 auto;padding:20px 16px 64px;align-items:start}
+.painel-conteudo{min-width:0}
+.painel-nav{position:sticky;top:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px}
+.painel-nav-grupo+.painel-nav-grupo{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.painel-nav-titulo{margin:4px 8px 6px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.painel-nav-link{display:block;padding:9px 12px;border-radius:8px;text-decoration:none;color:var(--text);font-weight:600;font-size:15px;border-left:4px solid transparent}
+.painel-nav-link small{display:block;color:var(--muted);font-weight:400;font-size:12px;margin-top:1px}
+.painel-nav-link:hover{background:var(--surface-2)}
+.painel-nav-link.is-ativo{background:var(--brand-soft);border-left-color:var(--brand);color:var(--brand)}
+@media (max-width:900px){
+  .painel-shell{grid-template-columns:1fr}
+  .painel-nav{position:static;display:flex;gap:12px;overflow-x:auto}
+  .painel-nav-grupo+.painel-nav-grupo{margin-top:0;padding-top:0;border-top:0;border-left:1px solid var(--line);padding-left:12px}
+  .painel-nav-link{white-space:nowrap}
+  .painel-nav-link small{display:none}
+}
+
+.abas{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin:18px 0 16px}
+.aba{appearance:none;background:transparent;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:10px 16px;font:inherit;font-weight:700;font-size:15px;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0}
+.aba:hover{color:var(--text);background:var(--surface-2)}
+.aba.is-ativa{color:var(--brand);border-bottom-color:var(--brand);background:var(--brand-soft)}
+
+.barra-caixas{display:flex;gap:8px;justify-content:flex-end;margin:0 0 10px}
+.caixa{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin:0 0 12px;overflow:hidden}
+.caixa>summary{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;list-style:none;font-weight:700;background:var(--surface-2)}
+.caixa>summary::-webkit-details-marker{display:none}
+.caixa[open]>summary{border-bottom:1px solid var(--line)}
+.caixa-titulo{flex:1;min-width:0}
+.caixa-sub{display:block;font-weight:400;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.caixa-selo{flex:none}
+.caixa-seta{flex:none;width:9px;height:9px;border-right:2.5px solid var(--muted);border-bottom:2.5px solid var(--muted);transform:rotate(45deg);transition:transform .15s;margin:0 4px 3px 4px}
+.caixa[open]>summary .caixa-seta{transform:rotate(-135deg);margin-bottom:-3px}
+.caixa-corpo{padding:14px 16px}
+.caixa-corpo .kv{padding:6px 0}

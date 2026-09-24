@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import { fmtMeses, type AvaliacaoDetalhada } from "@/lib/pontuacao";
 import { ROTULO_DOCUMENTO, type TipoDocumento } from "@/lib/tipos-inscricao";
+import { montarSecoes, type RegistroRelatorio } from "@/lib/relatorio";
 import type { Grupo, Nivel } from "@/lib/tipos";
+import { BarraCaixas, Caixa, useSinalCaixas, type SinalCaixas } from "@/components/Caixa";
 import { EntrevistaSecao } from "./EntrevistaSecao";
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
@@ -78,11 +80,41 @@ function Barra({ valor, teto }: { valor: number; teto: number }) {
   );
 }
 
+type Aba = "analise" | "entrevista" | "formulario" | "documentos";
+const ABAS: { chave: Aba; rotulo: string }[] = [
+  { chave: "analise", rotulo: "Análise curricular" },
+  { chave: "entrevista", rotulo: "Entrevista técnica" },
+  { chave: "formulario", rotulo: "Formulário respondido" },
+  { chave: "documentos", rotulo: "Documentos" },
+];
+
 export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { inscricaoId: string; resumo: Resumo; avaliacaoInicial: AvaliacaoDetalhada }) {
   const [avaliacao] = useState(avaliacaoInicial);
-  const d = avaliacao.detalhamento;
-
+  const [aba, setAba] = useState<Aba>("analise");
+  const [baixando, setBaixando] = useState(false);
+  const [erroPdf, setErroPdf] = useState("");
   const convocavel = avaliacao.habilitado && avaliacao.total >= PONTOS_MINIMOS_ENTREVISTA;
+
+  // PDF do formulário deste candidato (mesmo relatório do menu "Relatórios", filtrado pelo CPF).
+  async function baixarPdf() {
+    setErroPdf("");
+    setBaixando(true);
+    try {
+      const res = await fetch(`/api/painel/relatorio?formato=pdf&busca=${encodeURIComponent(resumo.cpf)}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.erro ?? "Não foi possível gerar o PDF.");
+      const nome = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "formulario.pdf";
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nome;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErroPdf(e instanceof Error ? e.message : "Falha ao baixar o PDF.");
+    } finally {
+      setBaixando(false);
+    }
+  }
 
   return (
     <>
@@ -105,13 +137,19 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
             {resumo.cota_racial ? <span className="chip">Cota racial</span> : null}
             {resumo.solicitou_isencao ? <span className="chip">Isenção solicitada</span> : null}
           </div>
+          <div style={{ marginTop: 12 }}>
+            <button type="button" className="btn btn-sm" disabled={baixando} onClick={() => void baixarPdf()}>
+              {baixando ? "Gerando PDF…" : "Baixar formulário (PDF)"}
+            </button>
+            {erroPdf ? <p className="motivo" style={{ marginTop: 6, color: "#ffd6d6" }}>{erroPdf}</p> : null}
+          </div>
         </div>
         <div className="resumo-destaque-total">
           <span className={`pill ${avaliacao.habilitado ? "pill-ok" : "pill-err"}`} style={{ marginBottom: 8, display: "inline-flex" }}>
             {avaliacao.habilitado ? "Habilitado" : "Inabilitado"}
           </span>
           <div className="num">{avaliacao.total.toFixed(1)}</div>
-          <small>de 60,0 pontos possíveis</small>
+          <small>de 60,0 pontos possíveis (AC)</small>
           {avaliacao.habilitado ? (
             <div style={{ marginTop: 6 }}>
               <span className={`pill ${convocavel ? "pill-ok" : "pill-muted"}`}>
@@ -121,6 +159,46 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
           ) : null}
         </div>
       </div>
+
+      <div className="abas" role="tablist" aria-label="Etapas do candidato">
+        {ABAS.map((a) => (
+          <button key={a.chave} type="button" role="tab" aria-selected={aba === a.chave} className={`aba${aba === a.chave ? " is-ativa" : ""}`} onClick={() => setAba(a.chave)}>
+            {a.rotulo}
+          </button>
+        ))}
+      </div>
+
+      {/* Todas as abas ficam montadas (só escondidas) para não perder o que está sendo digitado na ficha da entrevista. */}
+      <div role="tabpanel" hidden={aba !== "analise"}>
+        <AnaliseAba resumo={resumo} avaliacao={avaliacao} />
+      </div>
+      <div role="tabpanel" hidden={aba !== "entrevista"}>
+        <EntrevistaSecao inscricaoId={inscricaoId} />
+      </div>
+      <div role="tabpanel" hidden={aba !== "formulario"}>
+        <FormularioAba inscricaoId={inscricaoId} />
+      </div>
+      <div role="tabpanel" hidden={aba !== "documentos"}>
+        <DocumentosSecao inscricaoId={inscricaoId} />
+      </div>
+    </>
+  );
+}
+
+function SeloPts({ valor, teto }: { valor: number; teto: number }) {
+  return (
+    <span className={`pill ${valor > 0 ? "pill-ok" : "pill-muted"}`}>
+      {valor.toFixed(1)} / {teto.toFixed(1)} pts
+    </span>
+  );
+}
+
+function AnaliseAba({ resumo, avaliacao }: { resumo: Resumo; avaliacao: AvaliacaoDetalhada }) {
+  const d = avaliacao.detalhamento;
+  const { sinal, abrirTodas, recolherTodas } = useSinalCaixas();
+  return (
+    <div>
+      <BarraCaixas abrirTodas={abrirTodas} recolherTodas={recolherTodas} />
 
       {!avaliacao.habilitado && avaliacao.motivos.length ? (
         <div className="alert alert-err">
@@ -137,8 +215,7 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
         </div>
       ) : null}
 
-      <div className="topico">
-        <h3>Graduação (requisito de habilitação)</h3>
+      <Caixa titulo="Graduação (requisito de habilitação)" selo={<span className="pill pill-muted">não pontua</span>} sinal={sinal}>
         <p className="sub">Não pontua — é a base para poder concorrer. Itens 3.2 a 3.4 e 5.1 do edital.</p>
         <dl>
           <div className="kv">
@@ -170,15 +247,9 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
             ⚠ Curso tecnológico — não é aceito em nenhum grupo ou nível (item 5.1.6).
           </p>
         ) : null}
-      </div>
+      </Caixa>
 
-      <div className="criterio">
-        <div className="criterio-head">
-          <h4>Pós-graduação e títulos adicionais</h4>
-          <span className="valor">
-            {d.formacao.total.toFixed(1)} / {d.formacao.teto.toFixed(1)} pts
-          </span>
-        </div>
+      <Caixa titulo="Pós-graduação e títulos adicionais" selo={<SeloPts valor={d.formacao.total} teto={d.formacao.teto} />} sinal={sinal}>
         <Barra valor={d.formacao.total} teto={d.formacao.teto} />
         {d.formacao.itens.length === 0 ? (
           <p className="hint" style={{ marginTop: 10 }}>
@@ -201,15 +272,9 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
             </div>
           ))
         )}
-      </div>
+      </Caixa>
 
-      <div className="criterio">
-        <div className="criterio-head">
-          <h4>Cursos e certificações específicas</h4>
-          <span className="valor">
-            {d.cursos.total.toFixed(1)} / {d.cursos.teto.toFixed(1)} pts
-          </span>
-        </div>
+      <Caixa titulo="Cursos e certificações específicas" selo={<SeloPts valor={d.cursos.total} teto={d.cursos.teto} />} sinal={sinal}>
         <Barra valor={d.cursos.total} teto={d.cursos.teto} />
         {d.cursos.itens.length === 0 ? (
           <p className="hint" style={{ marginTop: 10 }}>
@@ -234,15 +299,9 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
             </div>
           ))
         )}
-      </div>
+      </Caixa>
 
-      <div className="criterio">
-        <div className="criterio-head">
-          <h4>Experiência profissional específica</h4>
-          <span className="valor">
-            {d.experiencia.pontos.toFixed(1)} / {d.experiencia.teto.toFixed(1)} pts
-          </span>
-        </div>
+      <Caixa titulo="Experiência profissional específica" selo={<SeloPts valor={d.experiencia.pontos} teto={d.experiencia.teto} />} sinal={sinal}>
         <Barra valor={d.experiencia.pontos} teto={d.experiencia.teto} />
         <dl style={{ marginTop: 10 }}>
           <div className="kv">
@@ -260,29 +319,61 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
             </dd>
           </div>
         </dl>
-      </div>
+      </Caixa>
 
-      <details style={{ marginTop: 8 }}>
-        <summary>Por que essas regras? ({d.avisos_metodologicos.length} avisos)</summary>
-        <ul style={{ margin: "8px 0 0 18px", fontSize: 13, color: "var(--muted)" }}>
+      <Caixa titulo="Por que essas regras?" selo={<span className="pill pill-muted">{d.avisos_metodologicos.length} avisos</span>} aberta={false} sinal={sinal}>
+        <ul style={{ margin: "0 0 0 18px", fontSize: 13, color: "var(--muted)" }}>
           {d.avisos_metodologicos.map((m, i) => (
             <li key={i}>{m}</li>
           ))}
         </ul>
-      </details>
+      </Caixa>
+    </div>
+  );
+}
 
-      <hr className="divider" />
-      <EntrevistaSecao inscricaoId={inscricaoId} />
+// Respostas do formulário, na mesma ordem e com as mesmas perguntas do relatório em Excel/PDF (lib/relatorio).
+function FormularioAba({ inscricaoId }: { inscricaoId: string }) {
+  const [registro, setRegistro] = useState<RegistroRelatorio | null>(null);
+  const [erro, setErro] = useState("");
+  const { sinal, abrirTodas, recolherTodas } = useSinalCaixas();
 
-      <hr className="divider" />
-      <DocumentosSecao inscricaoId={inscricaoId} />
-    </>
+  useEffect(() => {
+    createClient()
+      .schema("painel")
+      .rpc("formulario_da_inscricao", { p_inscricao_id: inscricaoId })
+      .then(({ data, error }: { data: RegistroRelatorio | null; error: { message: string } | null }) => {
+        if (error) setErro(error.message);
+        else setRegistro(data);
+      });
+  }, [inscricaoId]);
+
+  if (erro) return <p className="err">{erro}</p>;
+  if (!registro) return <p className="hint">Carregando formulário…</p>;
+
+  return (
+    <div>
+      <BarraCaixas abrirTodas={abrirTodas} recolherTodas={recolherTodas} />
+      {montarSecoes(registro).map((s) => (
+        <Caixa key={s.titulo} titulo={s.titulo} sinal={sinal}>
+          <dl>
+            {s.itens.map((i) => (
+              <div className="kv" key={i.pergunta}>
+                <dt>{i.pergunta}</dt>
+                <dd style={{ whiteSpace: "pre-line" }}>{i.resposta}</dd>
+              </div>
+            ))}
+          </dl>
+        </Caixa>
+      ))}
+    </div>
   );
 }
 
 function DocumentosSecao({ inscricaoId }: { inscricaoId: string }) {
   const [docs, setDocs] = useState<DocumentoPainel[] | null>(null);
   const [erro, setErro] = useState("");
+  const { sinal, abrirTodas, recolherTodas } = useSinalCaixas();
 
   useEffect(() => {
     createClient()
@@ -296,28 +387,33 @@ function DocumentosSecao({ inscricaoId }: { inscricaoId: string }) {
 
   return (
     <div>
-      <h3>Documentos enviados {docs ? `(${docs.length})` : ""}</h3>
-      <p className="hint">
-        A IA compara o que o candidato declarou com o que cada documento realmente diz — nunca decide sozinha se
-        o documento é válido. A conferência final é sempre da Comissão.
+      <p className="hint" style={{ marginTop: 0 }}>
+        A IA compara o que o candidato declarou com o que cada documento realmente diz — nunca decide sozinha se o documento é válido. A conferência
+        final é sempre da Comissão.
       </p>
+      {docs && docs.length > 0 ? <BarraCaixas abrirTodas={abrirTodas} recolherTodas={recolherTodas} /> : null}
       {erro ? <p className="err">{erro}</p> : null}
       {!docs ? (
         <p className="hint">Carregando…</p>
       ) : docs.length === 0 ? (
         <div className="empty">Nenhum documento enviado.</div>
       ) : (
-        <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
-          {docs.map((doc) => (
-            <LinhaDocumento key={doc.id} doc={doc} />
-          ))}
-        </div>
+        docs.map((doc) => <LinhaDocumento key={doc.id} doc={doc} sinal={sinal} />)
       )}
     </div>
   );
 }
 
-function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
+function seloDaVerificacao(extracao: Extracao | null): ReactNode {
+  if (!extracao) return <span className="pill pill-muted">Não verificado</span>;
+  const j = extracao.json_extraido;
+  if (j.tipo_documento && !j.tipo_documento.bate_com_esperado) return <span className="pill pill-err">⚠ Tipo diferente</span>;
+  if (j.comparacoes.some((c) => c.confere === "nao")) return <span className="pill pill-err">✗ Diverge</span>;
+  if (!j.legivel) return <span className="pill pill-err">Ilegível</span>;
+  return <span className="pill pill-ok">✓ Confere</span>;
+}
+
+function LinhaDocumento({ doc, sinal }: { doc: DocumentoPainel; sinal: SinalCaixas }) {
   const [extracao, setExtracao] = useState(doc.extracao);
   const [analisando, setAnalisando] = useState(false);
   const [erro, setErro] = useState("");
@@ -352,20 +448,23 @@ function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
   const rotuloPorConfere = { sim: "✓ Confere", nao: "✗ Não confere", nao_mencionado: "➖ Não mencionado" } as const;
 
   return (
-    <div className="linha-item">
-      <div className="linha-item-head">
-        <div>
-          <strong>{ROTULO_DOCUMENTO[doc.tipo]}</strong>
-          <small>{doc.nome_original}</small>
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button type="button" className="btn btn-sm" onClick={() => void verArquivo()}>
-            Ver arquivo
-          </button>
-          <button type="button" className="btn btn-sm btn-primary" disabled={analisando} onClick={() => void analisar()}>
-            {analisando ? <span className="spin" aria-hidden /> : null} {extracao ? "Verificar de novo" : "Verificar com IA"}
-          </button>
-        </div>
+    <Caixa
+      titulo={
+        <>
+          {ROTULO_DOCUMENTO[doc.tipo]} <small className="caixa-sub">{doc.nome_original}</small>
+        </>
+      }
+      selo={seloDaVerificacao(extracao)}
+      aberta={false}
+      sinal={sinal}
+    >
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <button type="button" className="btn btn-sm" onClick={() => void verArquivo()}>
+          Ver arquivo
+        </button>
+        <button type="button" className="btn btn-sm btn-primary" disabled={analisando} onClick={() => void analisar()}>
+          {analisando ? <span className="spin" aria-hidden /> : null} {extracao ? "Verificar de novo" : "Verificar com IA"}
+        </button>
       </div>
       {erro ? <p className="motivo">{erro}</p> : null}
       {extracao ? (
@@ -423,6 +522,6 @@ function LinhaDocumento({ doc }: { doc: DocumentoPainel }) {
           </p>
         </div>
       ) : null}
-    </div>
+    </Caixa>
   );
 }
