@@ -95,7 +95,7 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
             aceito.
           </p>
           <p>
-            Só valem comprovantes com data e hora entre <b>24/09/2026 e 07/10/2026</b>.
+            Só valem comprovantes com data e hora entre <b>28/09/2026 e 13/10/2026</b>.
           </p>
         </div>
       </div>

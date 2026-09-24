@@ -98,7 +98,7 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
             </thead>
             <tbody>
               {linhas.map((a) => (
-                <tr key={a.inscricao_id} onClick={() => router.push(`/painel/candidato/${a.inscricao_id}`)} tabIndex={0}>
+                <tr key={a.inscricao_id} onClick={() => router.push(`/painel/candidato/${a.inscricao_id}?aba=analise`)} tabIndex={0}>
                   <td>
                     <strong>{a.nome}</strong>
                     <br />

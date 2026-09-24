@@ -8,8 +8,8 @@ import { traduzirErro } from "@/lib/validacao";
 import { docsDoTipo, type Contexto } from "./contexto";
 
 // Laudo: emitido em até 12 meses antes do encerramento das inscrições (item 10.5).
-const LAUDO_MIN = "2025-10-07";
-const LAUDO_MAX = "2026-10-07";
+const LAUDO_MIN = "2025-10-13";
+const LAUDO_MAX = "2026-10-13";
 
 export function PassoCotas({ ctx }: { ctx: Contexto }) {
   const insc = ctx.inscricao!;
@@ -31,7 +31,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
     if (pcd) {
       if (!dataLaudo) e.dataLaudo = "Informe a data de emissão do laudo.";
       else if (dataLaudo < LAUDO_MIN || dataLaudo > LAUDO_MAX)
-        e.dataLaudo = "O laudo deve ter sido emitido a partir de 07/10/2025 (até 12 meses antes do encerramento).";
+        e.dataLaudo = "O laudo deve ter sido emitido a partir de 13/10/2025 (até 12 meses antes do encerramento).";
     }
     if (isencao && justificativa.trim().length < 10) e.justificativa = "Explique o motivo do pedido de isenção.";
     setErros(e);
@@ -93,7 +93,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
               <input id="dataLaudo" type="date" value={dataLaudo} onChange={(e) => setDataLaudo(e.target.value)} />
               <p className="hint">
                 O laudo deve ter sido emitido em até 12 meses antes do encerramento das inscrições, ou seja, a partir de
-                07/10/2025.
+                13/10/2025.
               </p>
               {erros.dataLaudo ? (
                 <p className="err" role="alert">

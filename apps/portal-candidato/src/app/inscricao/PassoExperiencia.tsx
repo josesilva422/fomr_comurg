@@ -355,7 +355,7 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
           </p>
           <p className="hint">
             Estimativa informativa. O tempo é contado em meses, com início e fim incluídos; vínculo ativo é contado até
-            07/10/2026. A contagem oficial é feita pela Comissão (itens 5.4.1 e 5.4.2).
+            13/10/2026. A contagem oficial é feita pela Comissão (itens 5.4.1 e 5.4.2).
           </p>
         </div>
       ) : null}

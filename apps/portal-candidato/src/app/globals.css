@@ -417,3 +417,31 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .caixa[open]>summary .caixa-seta{transform:rotate(-135deg);margin-bottom:-3px}
 .caixa-corpo{padding:14px 16px}
 .caixa-corpo .kv{padding:6px 0}
+
+/* Botão "Baixar formulário (PDF)": laranja da marca, para se destacar sobre a faixa verde do candidato */
+.btn-baixar{background:var(--accent-orange);border-color:var(--accent-orange);color:#fff;font-weight:700}
+.btn-baixar:hover:not(:disabled){filter:brightness(.92);border-color:var(--accent-orange);color:#fff}
+.btn-baixar:disabled{opacity:.7}
+
+/* Botão "Motor de regras" do menu lateral e a janela (popup) que ele abre */
+.painel-nav-botao{width:100%;text-align:left;background:transparent;border:0;border-left:4px solid transparent;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+.painel-nav-botao:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.modal-motor{border:0;padding:0;background:transparent;max-width:none;max-height:none;width:100%;height:100%;margin:0}
+.modal-motor::backdrop{background:rgba(10,20,15,.6)}
+.modal-motor:not([open]){display:none}
+.modal-motor[open]{display:grid;place-items:center;padding:16px}
+.modal-motor-caixa{background:var(--surface);color:var(--text);border-radius:14px;border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(860px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}
+.modal-motor-topo{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.modal-motor-topo h2{margin:0 0 2px}
+.modal-motor-corpo{padding:16px 20px 24px;overflow-y:auto}
+.modal-motor-corpo h3{margin:22px 0 6px;color:var(--brand)}
+.modal-motor-corpo h4{margin:16px 0 6px}
+.modal-motor-corpo ul{margin:6px 0 6px 20px;padding:0}
+.modal-motor-corpo li{margin:4px 0}
+.modal-motor-corpo table{margin:6px 0}
+@media (max-width:900px){.painel-nav-botao{white-space:nowrap}}
+
+/* Legenda das siglas (AC, ET, PF) no topo da janela do Motor de regras */
+.legenda-siglas{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;background:var(--brand-soft);border:1px solid var(--ok-line);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px}
+.legenda-siglas strong{display:inline-block;min-width:26px;text-align:center;background:var(--brand);color:var(--on-brand);border-radius:6px;padding:1px 7px;margin-right:6px}
+.legenda-siglas em{color:var(--muted);font-style:normal}

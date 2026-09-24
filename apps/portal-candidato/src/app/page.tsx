@@ -15,7 +15,7 @@ export default async function Inicio() {
   const { data } = await supabase.rpc("periodo_inscricoes");
   const periodo: Periodo = Array.isArray(data) && data.length ? data[0] : null;
 
-  let situacao = "Inscrições: 24/09 a 07/10/2026";
+  let situacao = "Inscrições: 28/09 a 13/10/2026";
   let mensagem = "";
   if (periodo) {
     const ab = new Date(periodo.abertura);

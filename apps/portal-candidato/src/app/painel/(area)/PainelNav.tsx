@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MotorRegrasBotao } from "./MotorRegras";
 
 // Menu lateral do painel. "Classificação final" reúne as duas visões: análise curricular e entrevista técnica.
 const ITENS = [
@@ -35,6 +36,10 @@ export function PainelNav() {
           ))}
         </div>
       ))}
+      <div className="painel-nav-grupo">
+        <p className="painel-nav-titulo">Consulta</p>
+        <MotorRegrasBotao />
+      </div>
     </nav>
   );
 }

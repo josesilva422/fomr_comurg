@@ -80,7 +80,7 @@ export function ClassificacaoTabela() {
             </thead>
             <tbody>
               {linhas.map((l) => (
-                <tr key={l.inscricao_id} onClick={() => router.push(`/painel/candidato/${l.inscricao_id}`)} tabIndex={0}>
+                <tr key={l.inscricao_id} onClick={() => router.push(`/painel/candidato/${l.inscricao_id}?aba=entrevista`)} tabIndex={0}>
                   <td>
                     {GRUPOS[l.grupo].nome} · {NIVEIS[l.nivel].nome}
                   </td>

@@ -88,9 +88,9 @@ const ABAS: { chave: Aba; rotulo: string }[] = [
   { chave: "documentos", rotulo: "Documentos" },
 ];
 
-export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { inscricaoId: string; resumo: Resumo; avaliacaoInicial: AvaliacaoDetalhada }) {
+export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial, abaInicial = "analise" }: { inscricaoId: string; resumo: Resumo; avaliacaoInicial: AvaliacaoDetalhada; abaInicial?: Aba }) {
   const [avaliacao] = useState(avaliacaoInicial);
-  const [aba, setAba] = useState<Aba>("analise");
+  const [aba, setAba] = useState<Aba>(abaInicial);
   const [baixando, setBaixando] = useState(false);
   const [erroPdf, setErroPdf] = useState("");
   const convocavel = avaliacao.habilitado && avaliacao.total >= PONTOS_MINIMOS_ENTREVISTA;
@@ -138,7 +138,7 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial }: { in
             {resumo.solicitou_isencao ? <span className="chip">Isenção solicitada</span> : null}
           </div>
           <div style={{ marginTop: 12 }}>
-            <button type="button" className="btn btn-sm" disabled={baixando} onClick={() => void baixarPdf()}>
+            <button type="button" className="btn btn-sm btn-baixar" disabled={baixando} onClick={() => void baixarPdf()}>
               {baixando ? "Gerando PDF…" : "Baixar formulário (PDF)"}
             </button>
             {erroPdf ? <p className="motivo" style={{ marginTop: 6, color: "#ffd6d6" }}>{erroPdf}</p> : null}

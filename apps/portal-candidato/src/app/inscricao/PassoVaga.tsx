@@ -215,7 +215,7 @@ export function PassoVaga({ ctx }: { ctx: Contexto }) {
 
       <div className="alert alert-info">
         <p>
-          Os requisitos são avaliados na data de <b>encerramento das inscrições (07/10/2026)</b>. Não é exigido registro em
+          Os requisitos são avaliados na data de <b>encerramento das inscrições (13/10/2026)</b>. Não é exigido registro em
           conselho de classe.
         </p>
       </div>

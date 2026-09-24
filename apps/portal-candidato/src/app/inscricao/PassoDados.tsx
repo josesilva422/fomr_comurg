@@ -28,7 +28,7 @@ export function PassoDados({ ctx }: { ctx: Contexto }) {
     if (!/^\S+(\s+\S+)+$/.test(nome.trim())) e.nome = "Informe o nome completo, com sobrenome.";
     if (!cpfValido(cpf)) e.cpf = "CPF inválido. Confira os números digitados.";
     if (!nasc) e.nasc = "Informe a data de nascimento.";
-    else if (nasc > NASCIMENTO_MAXIMO) e.nasc = "É preciso ter 18 anos completos até 07/10/2026 (encerramento das inscrições).";
+    else if (nasc > NASCIMENTO_MAXIMO) e.nasc = "É preciso ter 18 anos completos até 13/10/2026 (encerramento das inscrições).";
     else if (nasc < "1920-01-01") e.nasc = "Data inválida.";
     const t = somenteDigitos(tel);
     if (t.length < 10 || t.length > 11) e.tel = "Informe o DDD e o número. Ex.: (62) 90000-0000.";

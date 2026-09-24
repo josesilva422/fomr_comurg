@@ -30,9 +30,9 @@ export function mascaraTelefone(v: string): string {
 }
 
 /** Datas do processo (edital, Anexo IV). O banco é a fonte da verdade do período. */
-export const DATA_ENCERRAMENTO = "2026-10-07";
+export const DATA_ENCERRAMENTO = "2026-10-13";
 /** Idade mínima é avaliada na data de encerramento das inscrições (item 3.1). */
-export const NASCIMENTO_MAXIMO = "2008-10-07";
+export const NASCIMENTO_MAXIMO = "2008-10-13";
 
 export const emailValido = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 
