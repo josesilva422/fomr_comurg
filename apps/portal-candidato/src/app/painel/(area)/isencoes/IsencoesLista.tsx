@@ -14,9 +14,11 @@ interface LinhaIsencao {
   hipotese_isencao: "cadunico" | "doador_sangue" | "doador_medula" | null;
   nis_isencao: string | null;
   qtd_documentos: number;
-  decisao: "deferida" | "indeferida" | null;
+  decisao: "deferida" | "indeferida" | "desconsiderada" | null;
   motivo: string | null;
   decidido_em: string | null;
+  comprovante_enviado: boolean;
+  prazo_pagamento: string;
 }
 
 interface DocIsencao {
@@ -41,6 +43,7 @@ const CONFERIR: Record<string, string> = {
     "Mínimo de 1 doação nos 365 dias anteriores à abertura das inscrições (28/09/2026): comprovante da unidade coletora, assinado, e inscrição no REDOME.",
 };
 
+const ROTULO_DECISAO = { deferida: "Deferida", indeferida: "Indeferida", desconsiderada: "Inscrição desconsiderada" } as const;
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 const fmtData = (v: string | null) => (v ? new Date(v).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—");
 
@@ -112,10 +115,11 @@ function LinhaPedido({ l, aberta, alternar, recarregar }: { l: LinhaIsencao; abe
         <td>{l.qtd_documentos}</td>
         <td>
           {l.decisao ? (
-            <span className={`pill ${l.decisao === "deferida" ? "pill-ok" : "pill-err"}`}>{l.decisao === "deferida" ? "Deferida" : "Indeferida"}</span>
+            <span className={`pill ${l.decisao === "deferida" ? "pill-ok" : "pill-err"}`}>{ROTULO_DECISAO[l.decisao]}</span>
           ) : (
             <span className="pill pill-muted">Aguardando</span>
           )}
+          {l.decisao === "indeferida" ? <div className="hint">{l.comprovante_enviado ? "Comprovante de Pix enviado" : "Sem comprovante de Pix"}</div> : null}
         </td>
         <td style={{ textAlign: "right" }}>
           <button type="button" className="btn btn-sm" onClick={alternar}>
@@ -139,6 +143,8 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [agora] = useState(() => Date.now());
+  const prazoTerminou = agora > new Date(l.prazo_pagamento).getTime();
 
   useEffect(() => {
     createClient()
@@ -157,7 +163,7 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
-  async function decidir(decisao: "deferida" | "indeferida") {
+  async function decidir(decisao: "deferida" | "indeferida" | "desconsiderada") {
     setErro("");
     if (motivo.trim().length < 10) return setErro("Informe o motivo da decisão (mínimo de 10 caracteres).");
     setSalvando(true);
@@ -230,10 +236,15 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
         <button type="button" className="btn" disabled={salvando} onClick={() => decidir("indeferida")}>
           Indeferir isenção
         </button>
+        {l.decisao === "indeferida" && prazoTerminou ? (
+          <button type="button" className="btn" disabled={salvando} onClick={() => decidir("desconsiderada")}>
+            Desconsiderar inscrição (sem pagamento no prazo)
+          </button>
+        ) : null}
       </div>
       <p className="hint" style={{ margin: 0 }}>
-        Indeferida: o candidato poderá pagar a taxa até 16/10/2026, às 23h59 (item 4.10.2); sem o pagamento nesse prazo, a inscrição é desconsiderada por
-        decisão da Comissão. Toda decisão fica registrada na auditoria.
+        Indeferida: o candidato pode pagar a taxa até {fmtData(l.prazo_pagamento)} (item 4.10.2) e anexar o comprovante no portal. Depois desse prazo, sem
+        pagamento válido, a Comissão pode desconsiderar a inscrição, com motivo. Toda decisão fica registrada na auditoria e o candidato a vê no portal.
       </p>
     </div>
   );

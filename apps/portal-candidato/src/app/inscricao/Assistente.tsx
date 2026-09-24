@@ -13,6 +13,7 @@ import { PassoFormacao } from "./PassoFormacao";
 import { PassoPagamento } from "./PassoPagamento";
 import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
+import { ResultadoIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
   "Dados pessoais",
@@ -233,6 +234,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
           <b>{inscricao.status === "aguardando_isencao" ? "aguardando análise do pedido de isenção" : "recebida, aguardando homologação"}</b>
         </p>
       </section>
+      {inscricao.status === "aguardando_isencao" ? <ResultadoIsencao inscricaoId={inscricao.id} /> : null}
     </main>
   );
 }

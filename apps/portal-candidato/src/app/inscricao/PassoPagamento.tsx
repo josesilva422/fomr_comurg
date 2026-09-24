@@ -67,7 +67,8 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
         <div className="alert alert-ok">
           <p>
             Você pediu isenção. Enquanto o pedido estiver em análise, o comprovante é <b>opcional</b>. Sua inscrição ficará
-            com o status <b>aguardando isenção</b>.
+            com o status <b>aguardando isenção</b>. Se o pedido for indeferido, você poderá pagar e anexar o comprovante até <b>16/10/2026, às 23h59</b>{" "}
+            (item 4.10.2 do edital).
           </p>
         </div>
       ) : null}
