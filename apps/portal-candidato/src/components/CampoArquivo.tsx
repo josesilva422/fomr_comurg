@@ -20,13 +20,20 @@ interface Props {
   docs: Documento[];
   /** Chamado depois de enviar/remover, para a tela recarregar os dados. */
   aoMudar: () => Promise<unknown>;
+  /**
+   * Com este texto, o arquivo escolhido NÃO é enviado na hora: fica "pronto para enviar" e só vai para o banco quando a
+   * pessoa clica no botão (ex.: "Enviar comprovante"). Sem ele, o envio acontece assim que o arquivo é escolhido.
+   */
+  botaoEnviar?: string;
 }
 
-export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obrigatorio, multiplo, referencia, docs, aoMudar }: Props) {
+export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obrigatorio, multiplo, referencia, docs, aoMudar, botaoEnviar }: Props) {
   const entrada = useRef<HTMLInputElement>(null);
   const [tipoEscolhido, setTipoEscolhido] = useState<TipoDocumento | "">(opcoesTipo ? "" : tipo);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  // Com `botaoEnviar`: arquivos escolhidos aguardando o clique em enviar.
+  const [prontos, setProntos] = useState<File[]>([]);
 
   async function aoEscolher(lista: FileList | null) {
     if (!lista || lista.length === 0) return;
@@ -34,16 +41,26 @@ export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obri
     if (entrada.current) entrada.current.value = "";
     if (!tipoEscolhido) return setErro("Escolha primeiro o tipo do documento.");
     setErro("");
+    if (botaoEnviar) return setProntos(escolhidos);
+    await enviar(escolhidos);
+  }
+
+  async function enviar(escolhidos: File[]) {
+    if (!tipoEscolhido) return setErro("Escolha primeiro o tipo do documento.");
+    setErro("");
     setEnviando(true);
     const supabase = createClient();
+    let falhou = false;
     for (const arquivo of escolhidos) {
       const msg = await enviarArquivo(supabase, inscricaoId, tipoEscolhido, arquivo, referencia);
       if (msg) {
         setErro(msg);
+        falhou = true;
         break;
       }
     }
     await aoMudar();
+    if (!falhou) setProntos([]); // com erro, o arquivo continua na tela para tentar de novo
     setEnviando(false);
   }
 
@@ -56,7 +73,7 @@ export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obri
     setEnviando(false);
   }
 
-  const mostrarBotao = multiplo || docs.length === 0;
+  const mostrarBotao = (multiplo || docs.length === 0) && prontos.length === 0;
   const somentePdf = exigeSomentePdf(tipoEscolhido || tipo);
 
   return (
@@ -106,6 +123,27 @@ export function CampoArquivo({ inscricaoId, tipo, opcoesTipo, rotulo, dica, obri
             <small>{somentePdf ? "PDF · até 10 MB" : "PDF, JPG ou PNG · até 10 MB"}</small>
           </span>
         </button>
+      ) : null}
+      {prontos.length > 0 ? (
+        <div className="card" style={{ margin: "8px 0", padding: 12 }}>
+          <p style={{ margin: 0 }}>
+            <b>Pronto para enviar:</b> {prontos.map((f) => `${f.name} (${tamanhoLegivel(f.size)})`).join(", ")}
+          </p>
+          <p className="hint" style={{ margin: "4px 0 10px" }}>
+            Confira se é o arquivo certo. Ele só é enviado quando você clicar no botão abaixo.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={enviando} onClick={() => void enviar(prontos)}>
+              {enviando ? "Enviando…" : botaoEnviar}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={enviando} onClick={() => entrada.current?.click()}>
+              Trocar arquivo
+            </button>
+            <button type="button" className="btn btn-quiet btn-sm" disabled={enviando} onClick={() => setProntos([])}>
+              Cancelar
+            </button>
+          </div>
+        </div>
       ) : null}
       <input
         ref={entrada}

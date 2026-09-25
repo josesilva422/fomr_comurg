@@ -153,10 +153,11 @@ export function ResultadoIsencao({ inscricaoId, isencao }: { inscricaoId: string
             inscricaoId={inscricaoId}
             tipo="comprovante_pix"
             rotulo="Comprovante de pagamento"
-            dica="PDF, JPG ou PNG legível, com seu nome, CPF (pode ser parcial), data e horário, valor e código E2E. O arquivo é enviado assim que você o seleciona."
+            dica="PDF, JPG ou PNG legível, com seu nome, CPF (pode ser parcial), data e horário, valor e código E2E. Escolha o arquivo e clique em “Enviar comprovante”."
             obrigatorio
             docs={docs}
             aoMudar={carregar}
+            botaoEnviar="Enviar comprovante"
           />
           {docs.length > 0 ? (
             <div className="alert alert-ok" style={{ marginTop: 12 }}>
