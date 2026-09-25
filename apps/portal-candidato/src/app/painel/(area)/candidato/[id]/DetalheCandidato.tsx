@@ -318,6 +318,12 @@ function AnaliseAba({ resumo, avaliacao }: { resumo: Resumo; avaliacao: Avaliaca
               <b>{fmtMeses(d.experiencia.excedente_meses)}</b>
             </dd>
           </div>
+          {d.experiencia.vinculos_sem_comprovante ? (
+            <div className="kv">
+              <dt>Vínculos sem comprovante (não contados, item 5.3)</dt>
+              <dd>{d.experiencia.vinculos_sem_comprovante}</dd>
+            </div>
+          ) : null}
         </dl>
       </Caixa>
 

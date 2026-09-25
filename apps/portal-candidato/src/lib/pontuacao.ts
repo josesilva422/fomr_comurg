@@ -48,7 +48,15 @@ export interface ItemCurso {
 export interface Detalhamento {
   formacao: { itens: ItemFormacao[]; total: number; teto: number };
   cursos: { itens: ItemCurso[]; total: number; teto: number };
-  experiencia: { minimo_meses: number; meses_comprovados: number; excedente_meses: number; pontos: number; teto: number };
+  experiencia: {
+    minimo_meses: number;
+    meses_comprovados: number;
+    excedente_meses: number;
+    pontos: number;
+    teto: number;
+    /** Motor v6+: vínculos declarados sem o comprovante do item 5.3 (não entram na contagem). */
+    vinculos_sem_comprovante?: number;
+  };
   avisos_metodologicos: string[];
 }
 

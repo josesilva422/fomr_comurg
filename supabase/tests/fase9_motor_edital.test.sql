@@ -3,6 +3,8 @@
 --   (1) teto de 15,0 de cursos/certificações aplicado sobre a soma, sem depender da ordem (Anexo I, item 2);
 --   (2) pós-graduação que é o ÚNICO meio de cumprir o requisito do Pleno não pontua (Anexo I, item 1; 6.4.3);
 --   (6) avisos metodológicos citam o edital nas faixas de experiência (Anexo I, item 3; 6.4.2).
+-- e da migração 20260925110000_comprovante_experiencia_obrigatorio.sql:
+--   (7) cada vínculo precisa do comprovante do item 5.3 — sem ele não conta na experiência e bloqueia o envio.
 -- Roda inteiro dentro de UMA transação que é desfeita no final: não deixa nenhum dado.
 -- Uso local:  psql "$DATABASE_URL" -f supabase/tests/fase9_motor_edital.test.sql
 -- Uso remoto: colar no SQL Editor do Supabase (ou via MCP execute_sql).
@@ -19,10 +21,22 @@ begin
       return p_rotulo || ' -> esperado [' || coalesce(p_esperado, 'NULL') || '] obtido [' || coalesce(p_atual, 'NULL') || ']';
     end $b$
   $f$;
-  -- Candidato (como administrador) com um vínculo de p_inicio a p_fim; devolve o id da inscrição.
+  -- Anexa um documento (ativo) a um vínculo.
+  execute $f$create function pg_temp.doc_vinculo(p_vinc uuid, p_tipo text) returns uuid language plpgsql as $b$
+    declare v_insc uuid; v uuid;
+    begin
+      select inscricao_id into v_insc from publico.vinculos_declarados where id = p_vinc;
+      insert into publico.documentos (inscricao_id, tipo, vinculo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+        values (v_insc, p_tipo::publico.tipo_documento, p_vinc, v_insc || '/' || p_tipo || '/' || gen_random_uuid() || '.pdf', 'exp.pdf',
+                md5(p_vinc::text) || md5(p_tipo || random()::text), 'application/pdf', 1000)
+        returning id into v;
+      return v;
+    end $b$
+  $f$;
+  -- Candidato (como administrador) com um vínculo de p_inicio a p_fim, comprovado por CTPS; devolve o id da inscrição.
   execute $f$create function pg_temp.cand(p_n int, p_cpf text, p_grupo text, p_nivel text, p_curso text, p_inicio date, p_fim date)
     returns uuid language plpgsql as $b$
-    declare v_uid uuid := ('f9000000-0000-0000-0000-' || lpad(p_n::text, 12, '0'))::uuid; v_insc uuid;
+    declare v_uid uuid := ('f9000000-0000-0000-0000-' || lpad(p_n::text, 12, '0'))::uuid; v_insc uuid; v_vinc uuid;
     begin
       insert into auth.users (id, aud, role, email) values (v_uid, 'authenticated', 'authenticated', 'm' || p_n || '@teste.local');
       insert into publico.candidatos (user_id, nome, cpf, telefone, data_nascimento, nacionalidade)
@@ -32,7 +46,9 @@ begin
              grau_graduacao = 'bacharelado', instituicao_graduacao = 'UFG', data_colacao = '2005-12-15', formato_diploma = 'fisico'
         where id = v_insc;
       insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao)
-        values (v_insc, 'privado', 'Empresa Teste', 'Analista', p_inicio, p_fim, false, 'Atividades de teste do vínculo');
+        values (v_insc, 'privado', 'Empresa Teste', 'Analista', p_inicio, p_fim, false, 'Atividades de teste do vínculo')
+        returning id into v_vinc;
+      perform pg_temp.doc_vinculo(v_vinc, 'experiencia_ctps');
       return v_insc;
     end $b$
   $f$;
@@ -142,7 +158,58 @@ begin
                           'aviso das faixas de experiência não diz mais "convenção assumida"');
   t := t || pg_temp.igual(((av.detalhamento -> 'avisos_metodologicos')::text like '%Anexo I, item 3, e item 6.4.2%')::text, 'true',
                           'aviso das faixas de experiência cita o edital');
-  t := t || pg_temp.igual(av.versao_motor, 'v5-2026-09-25', 'versão do motor');
+  t := t || pg_temp.igual(av.versao_motor, 'v6-2026-09-25', 'versão do motor');
+
+  ---------------------------------------------------------------- (7) comprovante de experiência (5.3)
+  declare
+    v_insc uuid; v_priv uuid; v_pub uuid; v_aut uuid; v_doc uuid; pend text;
+  begin
+    -- Júnior com 3 vínculos sem sobreposição, cada um de 24 meses: privado (comprovado pela CTPS do helper),
+    -- público e autônomo ainda sem comprovante.
+    v_insc := pg_temp.cand(9, '11122233809', 'A', 'junior', 'Administração', '2014-01-01', '2015-12-01');
+    select id into v_priv from publico.vinculos_declarados where inscricao_id = v_insc;
+    insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao) values
+      (v_insc, 'publico', 'Prefeitura Teste', 'Assessor', '2017-01-01', '2018-12-01', false, 'Atividades de teste no órgão')
+      returning id into v_pub;
+    insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao) values
+      (v_insc, 'autonomo', 'Cliente Teste', 'Consultor', '2020-01-01', '2021-12-01', false, 'Atividades de teste como autônomo')
+      returning id into v_aut;
+
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_priv)::text, 'true', 'privado com CTPS: comprovado');
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_pub)::text, 'false', 'público sem documento: não comprovado');
+    av := interno.calcular_avaliacao(v_insc);
+    t := t || pg_temp.igual(av.detalhamento #>> '{experiencia,meses_comprovados}', '24', 'só o vínculo comprovado conta (24 meses, não 72)');
+    t := t || pg_temp.igual(av.detalhamento #>> '{experiencia,vinculos_sem_comprovante}', '2', 'detalhamento aponta 2 vínculos sem comprovante');
+
+    -- art/RRT sozinho não comprova; certidão do órgão comprova o público.
+    perform pg_temp.doc_vinculo(v_pub, 'art_rrt_acervo');
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_pub)::text, 'false', 'público só com ART/RRT: não comprovado (5.3.5 complementa)');
+    v_doc := pg_temp.doc_vinculo(v_pub, 'experiencia_publica');
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_pub)::text, 'true', 'público com certidão do órgão: comprovado');
+
+    -- autônomo: só a nota fiscal não basta; precisa também da declaração do contratante (5.3.3).
+    perform pg_temp.doc_vinculo(v_aut, 'experiencia_autonomo');
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_aut)::text, 'false', 'autônomo só com contrato/RPA/NF: não comprovado');
+    perform pg_temp.doc_vinculo(v_aut, 'experiencia_declaracao');
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_aut)::text, 'true', 'autônomo com NF + declaração do contratante: comprovado');
+    av := interno.calcular_avaliacao(v_insc);
+    t := t || pg_temp.igual(av.detalhamento #>> '{experiencia,meses_comprovados}', '72', 'com os três comprovados: 72 meses');
+
+    -- documento removido (ativo = false) deixa de comprovar
+    update publico.documentos set ativo = false where id = v_doc;
+    t := t || pg_temp.igual(interno.vinculo_comprovado(v_pub)::text, 'false', 'certidão removida: volta a não comprovar');
+
+    -- pendência bloqueante na inscrição do candidato
+    update interno.configuracao set valor = to_jsonb((now() - interval '1 day')::text) where chave = 'inscricoes_abertura';
+    update interno.configuracao set valor = to_jsonb((now() + interval '7 days')::text) where chave = 'inscricoes_encerramento';
+    perform set_config('request.jwt.claims', json_build_object('sub', 'f9000000-0000-0000-0000-000000000009', 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated';
+    select string_agg(mensagem, ' | ') into pend from publico.verificar_inscricao() where codigo = 'vinculo_sem_comprovante' and bloqueia;
+    execute 'reset role';
+    perform set_config('request.jwt.claims', '', true);
+    t := t || pg_temp.igual((pend like '%Prefeitura Teste%' and pend not like '%Empresa Teste%' and pend not like '%Cliente Teste%')::text, 'true',
+                            'pendência bloqueante só para o vínculo sem comprovante: ' || coalesce(pend, 'nenhuma'));
+  end;
 
   ---------------------------------------------------------------- resultado (a exceção desfaz TUDO)
   select count(*), count(x) into v_total, nf from unnest(t) x;

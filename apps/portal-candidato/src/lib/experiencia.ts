@@ -1,6 +1,6 @@
 // Contagem de experiência: unidade = mês, inclusive; períodos simultâneos contam uma só vez (edital 5.4.1 e 5.4.2).
 // Aqui a conta é só INFORMATIVA para o candidato; a contagem oficial é feita pela Comissão/motor de regras.
-import type { Vinculo } from "./tipos-inscricao";
+import type { TipoDocumento, TipoVinculo, Vinculo } from "./tipos-inscricao";
 
 /** Vínculo ativo é contado até o encerramento das inscrições (item 3.1). */
 export const MES_ENCERRAMENTO = "2026-10-01";
@@ -60,4 +60,26 @@ export function idsSimultaneos(vinculos: Vinculo[]): Set<string> {
     if (com.some((b, j) => i !== j && a.iv[0] <= b.iv[1] && b.iv[0] <= a.iv[1])) ids.add(a.id);
   });
   return ids;
+}
+
+/**
+ * Comprovante do vínculo (edital 5.3; mesma regra de interno.vinculo_comprovado no banco): devolve o que falta
+ * anexar, ou null se o vínculo está comprovado. Só confere a PRESENÇA do documento — a validade é da Comissão.
+ */
+export function faltaComprovante(tipo: TipoVinculo, anexados: TipoDocumento[]): string | null {
+  const tem = (t: TipoDocumento) => anexados.includes(t);
+  if (tipo === "privado") {
+    return tem("experiencia_ctps") || tem("experiencia_declaracao") || tem("experiencia_contrato")
+      ? null
+      : "Anexe a CTPS, a declaração do empregador ou o contrato.";
+  }
+  if (tipo === "publico") {
+    return tem("experiencia_publica") || tem("experiencia_contrato")
+      ? null
+      : "Anexe a certidão ou declaração do órgão, ou o contrato administrativo.";
+  }
+  const faltam: string[] = [];
+  if (!tem("experiencia_autonomo")) faltam.push("o contrato, RPA ou nota fiscal");
+  if (!tem("experiencia_declaracao")) faltam.push("a declaração do contratante");
+  return faltam.length ? `Anexe ${faltam.join(" e ")}.` : null;
 }

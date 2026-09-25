@@ -6,7 +6,7 @@ import { CampoArquivo } from "@/components/CampoArquivo";
 import { Pendencias } from "@/components/Pendencias";
 import { createClient } from "@/lib/supabase/client";
 import { NIVEIS } from "@/lib/requisitos";
-import { formatarMeses, idsSimultaneos, intervalo, mesParaData, uniaoMeses } from "@/lib/experiencia";
+import { faltaComprovante, formatarMeses, idsSimultaneos, intervalo, mesParaData, uniaoMeses } from "@/lib/experiencia";
 import type { Nivel } from "@/lib/tipos";
 import type { TipoDocumento, TipoVinculo, Vinculo } from "@/lib/tipos-inscricao";
 import { traduzirErro } from "@/lib/validacao";
@@ -18,14 +18,34 @@ const DOCS_POR_VINCULO: Record<TipoVinculo, TipoDocumento[]> = {
   autonomo: ["experiencia_autonomo", "experiencia_declaracao"],
 };
 
-const DICA_DOCS: Record<TipoVinculo, string> = {
-  privado:
-    "CTPS: páginas de identificação e de registro (se a função estiver em branco ou ilegível, anexe também a declaração do empregador). Declaração e contrato: papel timbrado, carimbo do CNPJ, assinatura e período exato.",
-  publico:
-    "Certidão ou declaração do órgão em papel timbrado, com assinatura e carimbo institucional, nome e CPF, cargo, período exato e atividades.",
-  autonomo:
-    "Contrato, RPA ou nota fiscal precisam vir acompanhados de declaração do contratante (papel timbrado, carimbo do CNPJ, assinatura, objeto, período e atividades).",
+// Documentos aceitos, conforme o edital (itens 5.3.1 a 5.3.5 e Anexo III).
+const DOCS_ACEITOS: Record<TipoVinculo, { regra: string; itens: string[] }> = {
+  privado: {
+    regra: "Anexe pelo menos um destes documentos (pode combinar mais de um):",
+    itens: [
+      "CTPS: páginas de identificação e de registro do contrato, com nome do empregador, cargo ou função, data de admissão e data de demissão (ou vínculo ativo). Se a função estiver em branco ou ilegível, anexe também a declaração do empregador.",
+      "Declaração do empregador: em papel timbrado da empresa, com carimbo do CNPJ, assinatura do representante legal, seu nome completo e CPF, cargo ou função, período exato (início e fim, ou vínculo ativo) e descrição das atividades. Sem papel timbrado, carimbo ou assinatura, não é aceita.",
+      "Contrato de trabalho ou de prestação de serviços: em papel timbrado, com carimbo do CNPJ, assinatura das partes, objeto ou escopo do contrato e período de vigência.",
+    ],
+  },
+  publico: {
+    regra: "Anexe pelo menos um destes documentos:",
+    itens: [
+      "Certidão ou declaração do órgão ou entidade: em papel timbrado, com assinatura do responsável e carimbo institucional, seu nome completo e CPF, cargo ou função, período exato e descrição das atividades.",
+      "Contrato administrativo ou instrumento equivalente, com os mesmos elementos.",
+    ],
+  },
+  autonomo: {
+    regra: "Anexe os dois documentos:",
+    itens: [
+      "Contrato de prestação de serviços, RPA ou nota fiscal.",
+      "Declaração do contratante: em papel timbrado, com carimbo do CNPJ, assinatura do responsável, objeto, período e atividades realizadas.",
+    ],
+  },
 };
+
+const DOCS_COMPLEMENTARES =
+  "ART, RRT ou certidão de acervo técnico (quando houver) complementam, mas não substituem os documentos acima: devem ter relação com a experiência declarada e identificar profissional, contratante, objeto e período.";
 
 function opcoesDocumento(tipo: TipoVinculo | "", nivel: Nivel | null): TipoDocumento[] {
   if (!tipo) return [];
@@ -115,6 +135,12 @@ function CartaoVinculo({
   }
 
   const opcoes = opcoesDocumento(vinculo?.tipo ?? tipo, ctx.inscricao?.nivel ?? null);
+  const faltando = vinculo
+    ? faltaComprovante(
+        vinculo.tipo,
+        ctx.documentos.filter((d) => d.vinculo_id === vinculo.id && d.ativo).map((d) => d.tipo),
+      )
+    : null;
 
   return (
     <div className="item">
@@ -204,7 +230,30 @@ function CartaoVinculo({
         <h4>Documentos que comprovam este vínculo</h4>
         {vinculo ? (
           <>
-            <p className="hint">{DICA_DOCS[vinculo.tipo]}</p>
+            <p className="hint" style={{ marginBottom: 4 }}>
+              <b>Obrigatório.</b> {DOCS_ACEITOS[vinculo.tipo].regra}
+            </p>
+            <ul className="hint" style={{ margin: "0 0 8px 18px" }}>
+              {DOCS_ACEITOS[vinculo.tipo].itens.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+            <p className="hint">{DOCS_COMPLEMENTARES}</p>
+            {ctx.inscricao?.nivel === "senior" ? (
+              <p className="hint">
+                Nível Sênior: para os anos de liderança técnica ou responsabilidade principal, anexe também a declaração específica do contratante,
+                com descrição explícita das responsabilidades de liderança ou coordenação técnica. Declaração genérica não é aceita para esse fim.
+              </p>
+            ) : null}
+            {faltando ? (
+              <div className="alert alert-warn" style={{ margin: "8px 0" }}>
+                <p>{faltando} Sem o comprovante, não é possível enviar a inscrição, e este vínculo não conta no tempo de experiência.</p>
+              </div>
+            ) : (
+              <div className="alert alert-ok" style={{ margin: "8px 0" }}>
+                <p>Comprovante anexado. A Comissão confere se o documento atende ao edital.</p>
+              </div>
+            )}
             <CampoArquivo
               inscricaoId={ctx.inscricao!.id}
               tipo={opcoes[0]}
@@ -259,7 +308,12 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
   const simultaneos = idsSimultaneos(ctx.vinculos);
   const validos = ctx.vinculos.map(intervalo).filter((x): x is [number, number] => x !== null);
   const soma = validos.reduce((t, [s, e]) => t + (e - s + 1), 0);
-  const contam = uniaoMeses(validos);
+  // Só vínculo com comprovante conta no tempo (edital 3.1 "comprovar" e 5.3; mesma regra do banco).
+  const comprovados = ctx.vinculos.filter(
+    (v) => faltaComprovante(v.tipo, ctx.documentos.filter((d) => d.vinculo_id === v.id && d.ativo).map((d) => d.tipo)) === null,
+  );
+  const semComprovante = ctx.vinculos.length - comprovados.length;
+  const contam = uniaoMeses(comprovados.map(intervalo).filter((x): x is [number, number] => x !== null));
   const minimo = nivel ? NIVEIS[nivel].minAnos * 12 : null;
 
   async function continuar() {
@@ -336,9 +390,15 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
               Soma simples dos vínculos<b>{formatarMeses(soma)}</b>
             </div>
             <div>
-              Tempo que conta (sem sobreposição)<b className="big">{formatarMeses(contam)}</b>
+              Tempo que conta (comprovado, sem sobreposição)<b className="big">{formatarMeses(contam)}</b>
             </div>
           </div>
+          {semComprovante > 0 ? (
+            <p className="hint" style={{ marginTop: 8, color: "var(--warn-text)" }}>
+              {semComprovante === 1 ? "1 vínculo ainda está" : `${semComprovante} vínculos ainda estão`} sem comprovante e não entra
+              {semComprovante === 1 ? "" : "m"} nesta contagem.
+            </p>
+          ) : null}
           <p style={{ marginTop: 10, fontSize: 14 }}>
             {minimo == null ? (
               <span className="hint">Escolha o grupo e o nível na etapa 2 para comparar com o mínimo exigido.</span>

@@ -78,7 +78,9 @@ export function MotorRegrasBotao() {
                   <td>Experiência mínima</td>
                   <td>
                     Júnior 12 meses · Pleno 48 meses · Sênior 96 meses. Conta a <b>união dos períodos em meses</b>: vínculos simultâneos valem uma só vez
-                    (5.4), e vínculo ativo conta até o encerramento das inscrições.
+                    (5.4), e vínculo ativo conta até o encerramento das inscrições. Só conta o vínculo com comprovante anexado (5.3): privado — CTPS,
+                    declaração ou contrato; público — certidão/declaração do órgão ou contrato administrativo; autônomo — contrato/RPA/nota fiscal
+                    <i>e</i> declaração do contratante. A validade do documento e a área da experiência são conferidas pela Comissão.
                   </td>
                 </tr>
                 <tr>
