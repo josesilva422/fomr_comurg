@@ -85,7 +85,8 @@ export function MotorRegrasBotao() {
                   <td>Pós-graduação</td>
                   <td>
                     <b>Júnior:</b> não exige. <b>Pleno:</b> título de especialização <i>ou</i> 5 anos de experiência <i>ou</i> (só Grupo B) certificação
-                    PMP/PgMP/PRINCE2/IPMA ativa, com credencial e código de verificação. <b>Sênior:</b> exige especialização (esse título não pontua depois).
+                    PMP/PgMP/PRINCE2/IPMA ativa, com credencial e código de verificação — se a especialização for o único meio de cumprir o requisito, ela não pontua
+                    depois. <b>Sênior:</b> exige especialização (esse título não pontua depois).
                   </td>
                 </tr>
               </tbody>
@@ -194,8 +195,8 @@ export function MotorRegrasBotao() {
 
             <h3>Convenções assumidas (a confirmar)</h3>
             <ul>
-              <li>O edital escreve as faixas de experiência como &quot;até 1 ano&quot;, &quot;de 1 a 3 anos&quot;, &quot;de 3 a 5 anos&quot; e &quot;acima de 5 anos&quot;: o 1, o 3 e o 5 aparecem em duas faixas ao mesmo tempo. O sistema conta em meses e põe o valor exato na faixa de <b>baixo</b> (12 meses = 5,0 pts; 36 meses = 15,0; 60 meses = 25,0). Só passa para a faixa seguinte com pelo menos 1 mês a mais (13, 37 e 61 meses). Ex.: 2 anos exatos acima do mínimo valem 15,0 e não 25,0.</li>
-              <li>No nível Pleno, o título de pós, os 5 anos de experiência ou a certificação equivalem entre si, sem descontar pontos.</li>
+              <li>No nível Pleno, quando há a especialização <i>e também</i> a equivalência (5 anos de experiência ou, no Grupo B, certificação ativa), a
+                especialização pontua. Quando ela é o único meio de cumprir o requisito, não pontua (Anexo I, item 1; 6.4.3).</li>
               <li>A idade de 60 anos do desempate é contada na data de encerramento das inscrições.</li>
               <li>
                 A correlação de cursos e títulos com as atribuições do Grupo e a autenticidade dos diplomas (e-MEC, Diplomas Digitais) são conferidas pela

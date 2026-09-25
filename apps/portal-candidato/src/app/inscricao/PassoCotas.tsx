@@ -110,7 +110,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
           <span className="track" />
           <span>
             <strong>Desejo concorrer às vagas reservadas para pessoas com deficiência</strong>
-            <small>Se for o seu caso, você poderá anexar o laudo médico. A reserva é de 5% das vagas, com preferência no cadastro de reserva.</small>
+            <small>Se for o seu caso, você poderá anexar o laudo médico. Você concorre ao mesmo tempo pela ampla concorrência e pela lista específica de pessoas com deficiência, respeitada a ordem de classificação.</small>
           </span>
         </label>
         {pcd ? (
@@ -151,7 +151,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
           <span className="track" />
           <span>
             <strong>Desejo concorrer como candidato(a) negro(a) (preto ou pardo)</strong>
-            <small>Reserva de 20% das vagas, com preferência no cadastro de reserva. Sujeito à heteroidentificação.</small>
+            <small>Reserva de 20% das vagas, aplicada ao longo das convocações por alternância e proporcionalidade, respeitada a ordem de classificação. Sujeito à heteroidentificação, na data da entrevista.</small>
           </span>
         </label>
         {racial ? (

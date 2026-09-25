@@ -1,0 +1,152 @@
+-- Fase 9 · Testes das correções do motor de regras conferidas com o edital publicado (25/09/2026 —
+-- migração 20260925100000_motor_teto_cursos_e_pos_requisito_pleno.sql):
+--   (1) teto de 15,0 de cursos/certificações aplicado sobre a soma, sem depender da ordem (Anexo I, item 2);
+--   (2) pós-graduação que é o ÚNICO meio de cumprir o requisito do Pleno não pontua (Anexo I, item 1; 6.4.3);
+--   (6) avisos metodológicos citam o edital nas faixas de experiência (Anexo I, item 3; 6.4.2).
+-- Roda inteiro dentro de UMA transação que é desfeita no final: não deixa nenhum dado.
+-- Uso local:  psql "$DATABASE_URL" -f supabase/tests/fase9_motor_edital.test.sql
+-- Uso remoto: colar no SQL Editor do Supabase (ou via MCP execute_sql).
+do $teste$
+declare
+  t text[] := '{}';
+  v_total integer; nf integer;
+  ins uuid;
+  av interno.avaliacoes_curriculares;
+begin
+  execute $f$create function pg_temp.igual(p_atual text, p_esperado text, p_rotulo text) returns text language plpgsql as $b$
+    begin
+      if p_atual is not distinct from p_esperado then return null; end if;
+      return p_rotulo || ' -> esperado [' || coalesce(p_esperado, 'NULL') || '] obtido [' || coalesce(p_atual, 'NULL') || ']';
+    end $b$
+  $f$;
+  -- Candidato (como administrador) com um vínculo de p_inicio a p_fim; devolve o id da inscrição.
+  execute $f$create function pg_temp.cand(p_n int, p_cpf text, p_grupo text, p_nivel text, p_curso text, p_inicio date, p_fim date)
+    returns uuid language plpgsql as $b$
+    declare v_uid uuid := ('f9000000-0000-0000-0000-' || lpad(p_n::text, 12, '0'))::uuid; v_insc uuid;
+    begin
+      insert into auth.users (id, aud, role, email) values (v_uid, 'authenticated', 'authenticated', 'm' || p_n || '@teste.local');
+      insert into publico.candidatos (user_id, nome, cpf, telefone, data_nascimento, nacionalidade)
+        values (v_uid, 'Motor Teste ' || p_n, p_cpf, '62999990000', '1985-05-05', 'brasileiro_nato');
+      select id into v_insc from publico.inscricoes where candidato_id = (select id from publico.candidatos where user_id = v_uid);
+      update publico.inscricoes set grupo = p_grupo::publico.grupo_vaga, nivel = p_nivel::publico.nivel_vaga, curso_graduacao = p_curso,
+             grau_graduacao = 'bacharelado', instituicao_graduacao = 'UFG', data_colacao = '2005-12-15', formato_diploma = 'fisico'
+        where id = v_insc;
+      insert into publico.vinculos_declarados (inscricao_id, tipo, empregador_contratante, cargo, inicio, fim, ativo, descricao)
+        values (v_insc, 'privado', 'Empresa Teste', 'Analista', p_inicio, p_fim, false, 'Atividades de teste do vínculo');
+      return v_insc;
+    end $b$
+  $f$;
+  -- Especialização com documento anexado.
+  execute $f$create function pg_temp.pos(p_insc uuid, p_horas int, p_nome text) returns void language plpgsql as $b$
+    declare v uuid;
+    begin
+      insert into publico.titulos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+        values (p_insc, 'especializacao', p_nome, 'FGV', p_horas, '2018-06-01') returning id into v;
+      insert into publico.documentos (inscricao_id, tipo, titulo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+        values (p_insc, 'diploma_pos', v, p_insc || '/diploma_pos/' || gen_random_uuid() || '.pdf', 'pos.pdf',
+                md5(v::text) || md5(p_nome), 'application/pdf', 1000);
+    end $b$
+  $f$;
+  -- Curso (p_horas) ou certificação (p_horas null) com documento anexado.
+  execute $f$create function pg_temp.curso(p_insc uuid, p_nome text, p_horas int, p_data date) returns void language plpgsql as $b$
+    declare v uuid;
+    begin
+      if p_horas is null then
+        insert into publico.cursos_declarados (inscricao_id, tipo, denominacao, instituicao, data_conclusao, numero_credencial, codigo_verificacao)
+          values (p_insc, 'certificacao', p_nome, 'PMI', p_data, '123456', 'ABC-123') returning id into v;
+      else
+        insert into publico.cursos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+          values (p_insc, 'curso', p_nome, 'ENAP', p_horas, p_data) returning id into v;
+      end if;
+      insert into publico.documentos (inscricao_id, tipo, curso_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+        values (p_insc, case when p_horas is null then 'certificacao_profissional' else 'certificado_curso' end::publico.tipo_documento, v,
+                p_insc || '/cursos/' || gen_random_uuid() || '.pdf', 'curso.pdf', md5(v::text) || md5(p_nome), 'application/pdf', 1000);
+    end $b$
+  $f$;
+
+  ---------------------------------------------------------------- (1) teto de 15,0 sobre a soma (Anexo I, item 2)
+  -- 4 cursos ≥ 80h (3,0 cada, limite da faixa 9,0 → o 4º não pontua) + 1 curso de 40h (2,0) + 1 certificação (5,0)
+  -- = 16,0 → 15,0 pelo teto. A certificação é a MAIS RECENTE: antes da correção ela recebia 0 e o total ficava em 11,0.
+  ins := pg_temp.cand(1, '11122233043', 'A', 'junior', 'Administração', '2020-01-01', '2021-12-01');
+  perform pg_temp.curso(ins, 'Revit ' || n, 80, '2019-01-01') from generate_series(1, 4) n;
+  perform pg_temp.curso(ins, 'Excel Avançado', 40, '2019-02-01');
+  perform pg_temp.curso(ins, 'Certificação PMP', null, '2021-01-01');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_cursos::text, '15.00', 'cursos 9 + 2 + certificação 5 = 16 → teto 15,0 (certificação mais recente não é mais zerada)');
+  t := t || pg_temp.igual(av.detalhamento #>> '{cursos,soma_itens}', '16.00', 'detalhamento guarda a soma bruta dos itens (16,0)');
+  t := t || pg_temp.igual((select (x ->> 'pontos') from jsonb_array_elements(av.detalhamento #> '{cursos,itens}') x where x ->> 'tipo' = 'certificacao'),
+                          '5.00', 'a certificação pontua 5,0 no item; o teto é aplicado no total');
+
+  -- Mesmos itens, certificação a MAIS ANTIGA: mesmo resultado (não depende da ordem).
+  ins := pg_temp.cand(2, '11122233124', 'A', 'junior', 'Administração', '2020-01-01', '2021-12-01');
+  perform pg_temp.curso(ins, 'Certificação PMP', null, '2015-01-01');
+  perform pg_temp.curso(ins, 'Revit ' || n, 80, '2019-01-01') from generate_series(1, 4) n;
+  perform pg_temp.curso(ins, 'Excel Avançado', 40, '2019-02-01');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_cursos::text, '15.00', 'mesma soma com a certificação em primeiro: 15,0 (independe da ordem)');
+
+  -- Abaixo do teto nada muda: 2 cursos de 20h (1,0 cada) + 1 de 80h (3,0) = 5,0.
+  ins := pg_temp.cand(3, '11122233205', 'A', 'junior', 'Administração', '2020-01-01', '2021-12-01');
+  perform pg_temp.curso(ins, 'SEI Básico', 20, '2019-01-01');
+  perform pg_temp.curso(ins, 'SEI Avançado', 39, '2019-01-02');
+  perform pg_temp.curso(ins, 'AutoCAD Avançado', 80, '2019-01-03');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_cursos::text, '5.00', 'soma abaixo do teto continua igual (1 + 1 + 3 = 5,0)');
+
+  ---------------------------------------------------------------- (2) pós como requisito no Pleno (Anexo I, item 1; 6.4.3)
+  -- A Pleno com 4 anos (48 meses) e 1 especialização: a pós é o ÚNICO meio de cumprir o requisito → habilita, não pontua.
+  ins := pg_temp.cand(4, '11122233396', 'A', 'pleno', 'Engenharia Civil', '2020-01-01', '2023-12-01');
+  perform pg_temp.pos(ins, 400, 'Gestão de Obras');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.habilitado::text, 'true', 'A Pleno, 48 meses + pós: habilitado');
+  t := t || pg_temp.igual(av.pontos_formacao::text, '0.00', 'A Pleno sem equivalência: a pós usada como requisito não pontua');
+  t := t || pg_temp.igual((select (x ->> 'motivo_rejeicao' like '%requisito de pós-graduação do nível Pleno%')::text
+                           from jsonb_array_elements(av.detalhamento #> '{formacao,itens}') x),
+                          'true', 'o detalhamento explica que o título foi usado como requisito do Pleno');
+
+  -- Duas especializações: uma cumpre o requisito, a outra pontua (2,0).
+  perform pg_temp.pos(ins, 400, 'Engenharia de Custos');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_formacao::text, '2.00', 'A Pleno com 2 pós: uma cumpre o requisito, a outra pontua 2,0');
+
+  -- O título escolhido como requisito é o que atende 5.2.1 (≥ 360h), não o de 300h cadastrado antes.
+  ins := pg_temp.cand(5, '11122233477', 'C', 'pleno', 'Direito', '2020-01-01', '2023-12-01');
+  perform pg_temp.pos(ins, 300, 'Curso curto');
+  perform pg_temp.pos(ins, 400, 'Direito Administrativo');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual((select x ->> 'denominacao' from jsonb_array_elements(av.detalhamento #> '{formacao,itens}') x
+                           where x ->> 'motivo_rejeicao' like '%requisito%'),
+                          'Direito Administrativo', 'o requisito usa a pós de 400h (atende 5.2.1), não a de 300h');
+
+  -- Com equivalência por 5 anos (60 meses), a pós continua pontuando (decisão pendente nº 4).
+  ins := pg_temp.cand(6, '11122233558', 'A', 'pleno', 'Engenharia Civil', '2019-01-01', '2023-12-01');
+  perform pg_temp.pos(ins, 400, 'Gestão de Obras');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_formacao::text, '2.00', 'A Pleno com 60 meses (equivalência) + pós: a pós pontua 2,0');
+
+  -- Grupo B com certificação PMP ativa (equivalência) + pós: a pós pontua.
+  ins := pg_temp.cand(7, '11122233639', 'B', 'pleno', 'Administração', '2020-01-01', '2023-12-01');
+  perform pg_temp.pos(ins, 400, 'Gestão de Projetos');
+  perform pg_temp.curso(ins, 'Certificação PMP', null, '2021-01-01');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_formacao::text, '2.00', 'B Pleno com PMP ativa (equivalência) + pós: a pós pontua 2,0');
+
+  -- Sem pós e sem equivalência: inabilitado.
+  ins := pg_temp.cand(8, '11122233710', 'A', 'pleno', 'Engenharia Civil', '2020-01-01', '2023-12-01');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.habilitado::text, 'false', 'A Pleno sem pós e sem 5 anos: inabilitado');
+  t := t || pg_temp.igual((av.motivos @> '[{"codigo": "pos_ou_equivalencia_ausente"}]')::text, 'true', 'motivo pos_ou_equivalencia_ausente');
+
+  ---------------------------------------------------------------- (6) avisos e versão
+  t := t || pg_temp.igual(((av.detalhamento -> 'avisos_metodologicos')::text like '%convenção assumida; ver decisão pendente nº 1%')::text, 'false',
+                          'aviso das faixas de experiência não diz mais "convenção assumida"');
+  t := t || pg_temp.igual(((av.detalhamento -> 'avisos_metodologicos')::text like '%Anexo I, item 3, e item 6.4.2%')::text, 'true',
+                          'aviso das faixas de experiência cita o edital');
+  t := t || pg_temp.igual(av.versao_motor, 'v5-2026-09-25', 'versão do motor');
+
+  ---------------------------------------------------------------- resultado (a exceção desfaz TUDO)
+  select count(*), count(x) into v_total, nf from unnest(t) x;
+  raise exception 'RESULTADO_DOS_TESTES: % verificações, % falhas%', v_total, nf,
+    case when nf > 0 then E'\n' || (select string_agg(x, E'\n') from unnest(t) x where x is not null) else ' — TODOS PASSARAM' end;
+end;
+$teste$;
