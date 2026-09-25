@@ -68,7 +68,7 @@ begin
     (ua, 'Ana Homologação Teste', '52998224725', '62999990000', '1988-03-14', 'brasileiro_nato'),
     (ub, 'Bia Homologação Teste', '39053344705', '62988880000', '1990-05-20', 'brasileiro_nato'),
     (uc, 'Cid Homologação Teste', '11144477735', '62977770000', '1992-07-01', 'brasileiro_nato'),
-    (ud, 'Dan Homologação Teste', '22233344405', '62966660000', '1993-08-02', 'brasileiro_nato');
+    (ud, 'Dan Homologação Teste', '22233344316', '62966660000', '1993-08-02', 'brasileiro_nato');
   select i.id into ia from publico.inscricoes i join publico.candidatos c on c.id = i.candidato_id where c.user_id = ua;
   select i.id into ib from publico.inscricoes i join publico.candidatos c on c.id = i.candidato_id where c.user_id = ub;
   select i.id into ic from publico.inscricoes i join publico.candidatos c on c.id = i.candidato_id where c.user_id = uc;
