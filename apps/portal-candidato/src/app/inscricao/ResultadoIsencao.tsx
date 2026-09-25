@@ -5,7 +5,7 @@ import { CampoArquivo } from "@/components/CampoArquivo";
 import { createClient } from "@/lib/supabase/client";
 import type { Documento } from "@/lib/tipos-inscricao";
 
-interface MinhaIsencao {
+export interface MinhaIsencao {
   decisao: "deferida" | "indeferida" | "desconsiderada";
   motivo: string;
   decidido_em: string;
@@ -23,13 +23,14 @@ interface DadosPagamento {
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmt = (v: string) => new Date(v).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
-// Resultado do pedido de isenção, visto só pelo próprio candidato. Se indeferida e dentro do prazo (item 4.10.2),
-// mostra como pagar e permite anexar o comprovante do Pix.
-export function ResultadoIsencao({ inscricaoId }: { inscricaoId: string }) {
+const fmtCurto = (v: string) =>
+  new Date(v).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+
+/** Decisão sobre o PRÓPRIO pedido de isenção, dados do Pix e comprovantes anexados (null enquanto carrega). */
+export function useMinhaIsencao(ativo: boolean) {
   const [res, setRes] = useState<MinhaIsencao | null>(null);
   const [dados, setDados] = useState<DadosPagamento | null>(null);
   const [docs, setDocs] = useState<Documento[]>([]);
-  const [copiado, setCopiado] = useState(false);
 
   const buscar = useCallback(async () => {
     const supabase = createClient();
@@ -54,6 +55,7 @@ export function ResultadoIsencao({ inscricaoId }: { inscricaoId: string }) {
   const carregar = useCallback(async () => aplicar(await buscar()), [aplicar, buscar]);
 
   useEffect(() => {
+    if (!ativo) return;
     let vivo = true;
     void buscar().then((r) => {
       if (vivo) aplicar(r);
@@ -61,7 +63,26 @@ export function ResultadoIsencao({ inscricaoId }: { inscricaoId: string }) {
     return () => {
       vivo = false;
     };
-  }, [buscar, aplicar]);
+  }, [ativo, buscar, aplicar]);
+
+  return { res, dados, docs, carregar };
+}
+
+/** Texto da "Situação" da inscrição enquanto ela está no fluxo da isenção. */
+export function situacaoIsencao(res: MinhaIsencao | null, docs: Documento[]): string {
+  if (!res) return "aguardando análise do pedido de isenção";
+  if (res.decisao === "deferida") return "isenção deferida — aguardando homologação";
+  if (res.decisao === "desconsiderada") return "inscrição desconsiderada (taxa não paga no prazo)";
+  if (docs.length > 0) return "isenção indeferida — comprovante do Pix enviado, aguardando conferência da Comissão";
+  if (res.pode_pagar) return `isenção indeferida — pagamento da taxa pendente (até ${fmtCurto(res.prazo_pagamento)})`;
+  return "isenção indeferida — prazo de pagamento encerrado";
+}
+
+// Resultado do pedido de isenção, visto só pelo próprio candidato. Se indeferida e dentro do prazo (item 4.10.2),
+// mostra como pagar e permite anexar o comprovante do Pix.
+export function ResultadoIsencao({ inscricaoId, isencao }: { inscricaoId: string; isencao: ReturnType<typeof useMinhaIsencao> }) {
+  const { res, dados, docs, carregar } = isencao;
+  const [copiado, setCopiado] = useState(false);
 
   if (!res) return null;
 
@@ -132,12 +153,26 @@ export function ResultadoIsencao({ inscricaoId }: { inscricaoId: string }) {
             inscricaoId={inscricaoId}
             tipo="comprovante_pix"
             rotulo="Comprovante de pagamento"
-            dica="PDF, JPG ou PNG legível, com seu nome, CPF (pode ser parcial), data e horário, valor e código E2E."
+            dica="PDF, JPG ou PNG legível, com seu nome, CPF (pode ser parcial), data e horário, valor e código E2E. O arquivo é enviado assim que você o seleciona."
             obrigatorio
             docs={docs}
             aoMudar={carregar}
           />
+          {docs.length > 0 ? (
+            <div className="alert alert-ok" style={{ marginTop: 12 }}>
+              <p>
+                <b>✓ Comprovante enviado em {fmt(docs[docs.length - 1].enviado_em)}.</b> Não é preciso fazer mais nada: a Comissão vai conferir o
+                pagamento. Se anexou o arquivo errado, remova-o (×) e envie o correto até o prazo.
+              </p>
+            </div>
+          ) : null}
         </>
+      ) : docs.length > 0 ? (
+        <div className="alert alert-ok">
+          <p>
+            <b>✓ Comprovante enviado em {fmt(docs[docs.length - 1].enviado_em)}.</b> A Comissão vai conferir o pagamento.
+          </p>
+        </div>
       ) : (
         <p className="hint">O prazo para pagamento terminou. A Comissão decidirá sobre a inscrição.</p>
       )}

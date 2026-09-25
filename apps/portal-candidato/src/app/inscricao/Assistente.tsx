@@ -13,7 +13,7 @@ import { PassoFormacao } from "./PassoFormacao";
 import { PassoPagamento } from "./PassoPagamento";
 import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
-import { ResultadoIsencao } from "./ResultadoIsencao";
+import { ResultadoIsencao, situacaoIsencao, useMinhaIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
   "Dados pessoais",
@@ -212,6 +212,8 @@ export function Assistente(props: DadosIniciais) {
 /* ------------------------------------------------------------------ Inscrição enviada (selada) */
 
 function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Candidato | null }) {
+  const noFluxoIsencao = inscricao.status === "aguardando_isencao";
+  const isencao = useMinhaIsencao(noFluxoIsencao);
   const protocolo = `PSS-2026-${inscricao.id.slice(0, 8).toUpperCase()}`;
   const quando = inscricao.submetida_em
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(inscricao.submetida_em))
@@ -231,10 +233,10 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
         {quando ? <p style={{ color: "var(--muted)", fontSize: 14 }}>Enviada em {quando}</p> : null}
         <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
           Situação:{" "}
-          <b>{inscricao.status === "aguardando_isencao" ? "aguardando análise do pedido de isenção" : "recebida, aguardando homologação"}</b>
+          <b>{noFluxoIsencao ? situacaoIsencao(isencao.res, isencao.docs) : "recebida, aguardando homologação"}</b>
         </p>
       </section>
-      {inscricao.status === "aguardando_isencao" ? <ResultadoIsencao inscricaoId={inscricao.id} /> : null}
+      {noFluxoIsencao ? <ResultadoIsencao inscricaoId={inscricao.id} isencao={isencao} /> : null}
     </main>
   );
 }
