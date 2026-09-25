@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Campo } from "@/components/Campo";
 import { CampoArquivo } from "@/components/CampoArquivo";
 import { Pendencias } from "@/components/Pendencias";
+import { StatusAutoSalvar } from "@/components/StatusAutoSalvar";
+import { salvarPendentes, useAutoSalvar } from "@/lib/auto-salvar";
 import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS, REQUISITOS } from "@/lib/requisitos";
 import type { Inscricao } from "@/lib/tipos";
@@ -33,10 +35,38 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
   // pendências ao vivo: some da lista assim que o candidato resolve (o banco recalcula a cada mudança)
   const faltam = tentou ? ctx.pendencias.filter((p) => p.etapa === 3) : [];
   const [salvando, setSalvando] = useState(false);
-  // cartões ainda não salvos — os salvos vêm do banco; `valores`, quando presente, vem da leitura do currículo
-  const [novosTitulos, setNovosTitulos] = useState<{ chave: number; valores?: RascunhoTitulo }[]>([]);
-  const [novosCursos, setNovosCursos] = useState<{ chave: number; valores?: RascunhoCurso }[]>([]);
+  // Cartões novos (vazios ou vindos do currículo). Depois do 1º salvamento automático guardam o id criado, e o
+  // mesmo item não aparece de novo na lista dos salvos enquanto o cartão novo estiver aberto.
+  const [novosTitulos, setNovosTitulos] = useState<{ chave: number; valores?: RascunhoTitulo; id?: string }[]>([]);
+  const [novosCursos, setNovosCursos] = useState<{ chave: number; valores?: RascunhoCurso; id?: string }[]>([]);
   const [contador, setContador] = useState(1);
+
+  // Graduação: salva sozinha a cada alteração (sem botão); as exigências são conferidas no "Continuar" e no envio.
+  const graduacao = {
+    curso_graduacao: curso || null,
+    grau_graduacao: grau || null,
+    instituicao_graduacao: instituicao.trim() || null,
+    data_colacao: colacao || null,
+    formato_diploma: formato || null,
+    codigo_diploma_digital: formato === "digital" ? codigo.trim() || null : null,
+    diploma_provisorio: provisorio,
+    diploma_exterior: exterior,
+  };
+  async function gravarGraduacao(): Promise<boolean> {
+    const { error } = await createClient().from("inscricoes").update(graduacao).eq("id", insc.id);
+    if (error) {
+      setErroGeral(traduzirErro(error));
+      return false;
+    }
+    setErroGeral("");
+    return true;
+  }
+  const { estado: estadoGraduacao } = useAutoSalvar({
+    assinatura: JSON.stringify(graduacao),
+    pronto: true,
+    jaSalvo: true,
+    salvar: gravarGraduacao,
+  });
 
   useEffect(() => {
     if (!insc.grupo || !insc.nivel) return;
@@ -91,19 +121,8 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
     setErros(e);
     if (Object.keys(e).length) return;
     setSalvando(true);
-    const { error } = await createClient()
-      .from("inscricoes")
-      .update({
-        curso_graduacao: curso,
-        grau_graduacao: grau,
-        instituicao_graduacao: instituicao.trim(),
-        data_colacao: colacao,
-        formato_diploma: formato,
-        codigo_diploma_digital: formato === "digital" ? codigo.trim() : null,
-        diploma_provisorio: provisorio,
-        diploma_exterior: exterior,
-      })
-      .eq("id", insc.id);
+    await salvarPendentes(); // títulos, cursos e graduação que ainda estavam para ser gravados
+    const { error } = await createClient().from("inscricoes").update(graduacao).eq("id", insc.id);
     if (error) {
       setSalvando(false);
       return setErroGeral(traduzirErro(error));
@@ -118,6 +137,8 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
   }
 
   const docs = (tipo: string) => docsDoTipo(ctx.documentos, tipo);
+  const titulosSalvos = ctx.titulos.filter((t) => !novosTitulos.some((n) => n.id === t.id));
+  const cursosSalvos = ctx.cursos.filter((c) => !novosCursos.some((n) => n.id === c.id));
 
   function aplicarLeituraCurriculo(dados: DadosCurriculo) {
     // Graduação: só preenche o que ainda estiver vazio (não sobrescreve o que a pessoa já digitou).
@@ -312,6 +333,8 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         ) : null}
       </div>
 
+      <StatusAutoSalvar estado={estadoGraduacao} faltando={[]} erro={erroGeral} />
+
       <hr className="divider" />
       <h3>Pós-graduação, mestrado e doutorado</h3>
       <p className="sub">
@@ -342,16 +365,17 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         </div>
       ) : null}
       <div className="repeater">
-        {ctx.titulos.map((t, i) => (
+        {titulosSalvos.map((t, i) => (
           <CartaoTitulo key={t.id} ctx={ctx} titulo={t} numero={i + 1} />
         ))}
         {novosTitulos.map((n, i) => (
           <CartaoTitulo
             key={`novo-${n.chave}`}
             ctx={ctx}
-            numero={ctx.titulos.length + i + 1}
+            numero={titulosSalvos.length + i + 1}
             valoresIniciais={n.valores}
             aoFechar={() => setNovosTitulos((l) => l.filter((x) => x.chave !== n.chave))}
+            aoCriar={(id) => setNovosTitulos((l) => l.map((x) => (x.chave === n.chave ? { ...x, id } : x)))}
           />
         ))}
       </div>
@@ -373,16 +397,17 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
         (PMP, PgMP, PRINCE2, IPMA ou similares).
       </p>
       <div className="repeater">
-        {ctx.cursos.map((c, i) => (
+        {cursosSalvos.map((c, i) => (
           <CartaoCurso key={c.id} ctx={ctx} curso={c} numero={i + 1} />
         ))}
         {novosCursos.map((n, i) => (
           <CartaoCurso
             key={`novo-${n.chave}`}
             ctx={ctx}
-            numero={ctx.cursos.length + i + 1}
+            numero={cursosSalvos.length + i + 1}
             valoresIniciais={n.valores}
             aoFechar={() => setNovosCursos((l) => l.filter((x) => x.chave !== n.chave))}
+            aoCriar={(id) => setNovosCursos((l) => l.map((x) => (x.chave === n.chave ? { ...x, id } : x)))}
           />
         ))}
       </div>

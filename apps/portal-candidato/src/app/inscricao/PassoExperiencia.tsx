@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Campo } from "@/components/Campo";
 import { CampoArquivo } from "@/components/CampoArquivo";
 import { Pendencias } from "@/components/Pendencias";
+import { StatusAutoSalvar } from "@/components/StatusAutoSalvar";
+import { salvarPendentes, useAutoSalvar } from "@/lib/auto-salvar";
 import { createClient } from "@/lib/supabase/client";
 import { NIVEIS } from "@/lib/requisitos";
 import { faltaComprovante, formatarMeses, idsSimultaneos, intervalo, mesParaData, uniaoMeses } from "@/lib/experiencia";
@@ -63,6 +65,7 @@ function CartaoVinculo({
   numero,
   simultaneo,
   aoFechar,
+  aoCriar,
 }: {
   ctx: Contexto;
   vinculo?: Vinculo;
@@ -71,6 +74,8 @@ function CartaoVinculo({
   numero: number;
   simultaneo: boolean;
   aoFechar?: () => void;
+  /** Cartão novo: avisa o id criado no primeiro salvamento automático (a lista não o mostra em dobro). */
+  aoCriar?: (id: string) => void;
 }) {
   const [tipo, setTipo] = useState<TipoVinculo | "">(vinculo?.tipo ?? valoresIniciais?.tipo ?? "");
   const [empregador, setEmpregador] = useState(vinculo?.empregador_contratante ?? valoresIniciais?.empregador_contratante ?? "");
@@ -80,27 +85,30 @@ function CartaoVinculo({
   const [ativo, setAtivo] = useState(vinculo?.ativo ?? valoresIniciais?.ativo ?? false);
   const [descricao, setDescricao] = useState(vinculo?.descricao ?? valoresIniciais?.descricao ?? "");
   const [vindoDoCV] = useState(!vinculo && Boolean(valoresIniciais));
-  const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
+  // Cartão novo: id criado no primeiro salvamento automático (daí em diante, grava por atualização).
+  const [idSalvo, setIdSalvo] = useState<string | null>(null);
+  const idRef = useRef<string | null>(vinculo?.id ?? null);
+  const itemId = vinculo?.id ?? idSalvo;
 
-  async function salvar() {
+  const erros: Record<string, string> = {};
+  if (!tipo) erros.tipo = "Selecione o tipo de vínculo.";
+  if (empregador.trim().length < 2) erros.empregador = "Informe o empregador ou contratante.";
+  if (cargo.trim().length < 2) erros.cargo = "Informe o cargo ou função.";
+  if (!/^\d{4}-\d{2}$/.test(inicio)) erros.inicio = "Informe o mês de início (mês/ano).";
+  if (!ativo) {
+    if (!/^\d{4}-\d{2}$/.test(fim)) erros.fim = "Informe o mês de fim ou marque “vínculo ativo”.";
+    else if (/^\d{4}-\d{2}$/.test(inicio) && fim < inicio) erros.fim = "O fim não pode ser anterior ao início.";
+  }
+  if (inicio > MES_MAXIMO || (!ativo && fim > MES_MAXIMO)) erros.inicio = "Os períodos não podem passar de outubro/2026 (encerramento das inscrições).";
+  if (descricao.trim().length < 10) erros.descricao = "Descreva as atividades (mínimo de 10 caracteres).";
+  const pronto = Object.keys(erros).length === 0;
+  const assinatura = JSON.stringify([tipo, empregador.trim(), cargo.trim(), inicio, ativo ? "" : fim, ativo, descricao.trim()]);
+
+  async function salvar(): Promise<boolean> {
     setErroGeral("");
-    const e: Record<string, string> = {};
-    if (!tipo) e.tipo = "Selecione uma opção.";
-    if (empregador.trim().length < 2) e.empregador = "Informe o empregador ou contratante.";
-    if (cargo.trim().length < 2) e.cargo = "Informe o cargo ou função.";
-    if (!/^\d{4}-\d{2}$/.test(inicio)) e.inicio = "Informe o mês de início (mês/ano).";
-    if (!ativo) {
-      if (!/^\d{4}-\d{2}$/.test(fim)) e.fim = "Informe o mês de fim ou marque “vínculo ativo”.";
-      else if (/^\d{4}-\d{2}$/.test(inicio) && fim < inicio) e.fim = "O fim não pode ser anterior ao início.";
-    }
-    if (inicio > MES_MAXIMO || (!ativo && fim > MES_MAXIMO)) e.inicio = "Os períodos não podem passar de outubro/2026 (encerramento das inscrições).";
-    if (descricao.trim().length < 10) e.descricao = "Descreva as atividades (mínimo de 10 caracteres).";
-    setErros(e);
-    if (Object.keys(e).length) return;
-    setOcupado(true);
     const dados = {
       tipo,
       empregador_contratante: empregador.trim(),
@@ -111,36 +119,52 @@ function CartaoVinculo({
       descricao: descricao.trim(),
     };
     const supabase = createClient();
-    const { error } = vinculo
-      ? await supabase.from("vinculos_declarados").update(dados).eq("id", vinculo.id)
-      : await supabase.from("vinculos_declarados").insert({ inscricao_id: ctx.inscricao!.id, ...dados });
-    if (error) {
-      setOcupado(false);
-      return setErroGeral(traduzirErro(error));
+    if (idRef.current) {
+      const { error } = await supabase.from("vinculos_declarados").update(dados).eq("id", idRef.current);
+      if (error) {
+        setErroGeral(traduzirErro(error));
+        return false;
+      }
+    } else {
+      const { data: criado, error } = await supabase
+        .from("vinculos_declarados")
+        .insert({ inscricao_id: ctx.inscricao!.id, ...dados })
+        .select("id")
+        .single();
+      if (error || !criado) {
+        setErroGeral(error ? traduzirErro(error) : "Não foi possível salvar.");
+        return false;
+      }
+      idRef.current = criado.id as string;
+      setIdSalvo(idRef.current);
+      aoCriar?.(idRef.current);
     }
     await ctx.recarregar();
-    setOcupado(false);
-    aoFechar?.();
+    return true;
   }
+  const { estado, descartar } = useAutoSalvar({ assinatura, pronto, jaSalvo: Boolean(vinculo), salvar });
 
   async function remover() {
-    if (!vinculo) return aoFechar?.();
+    descartar();
+    if (!itemId) return aoFechar?.();
     setOcupado(true);
     const supabase = createClient();
-    await supabase.from("documentos").update({ ativo: false }).eq("vinculo_id", vinculo.id).eq("ativo", true);
-    const { error } = await supabase.from("vinculos_declarados").delete().eq("id", vinculo.id);
+    await supabase.from("documentos").update({ ativo: false }).eq("vinculo_id", itemId).eq("ativo", true);
+    const { error } = await supabase.from("vinculos_declarados").delete().eq("id", itemId);
     if (error) setErroGeral(traduzirErro(error));
     await ctx.recarregar();
     setOcupado(false);
+    if (!error) aoFechar?.();
   }
 
-  const opcoes = opcoesDocumento(vinculo?.tipo ?? tipo, ctx.inscricao?.nivel ?? null);
-  const faltando = vinculo
-    ? faltaComprovante(
-        vinculo.tipo,
-        ctx.documentos.filter((d) => d.vinculo_id === vinculo.id && d.ativo).map((d) => d.tipo),
-      )
-    : null;
+  const opcoes = opcoesDocumento(tipo, ctx.inscricao?.nivel ?? null);
+  const faltando =
+    itemId && tipo
+      ? faltaComprovante(
+          tipo,
+          ctx.documentos.filter((d) => d.vinculo_id === itemId && d.ativo).map((d) => d.tipo),
+        )
+      : null;
 
   return (
     <div className="item">
@@ -148,7 +172,7 @@ function CartaoVinculo({
         <div>
           <strong className="item-title">Vínculo {numero}</strong>
           {simultaneo ? <span className="badge badge-warn">Simultâneo com outro vínculo</span> : null}
-          {vindoDoCV ? <span className="badge badge-warn">Do currículo — confira antes de salvar</span> : null}
+          {vindoDoCV ? <span className="badge badge-warn">Do currículo — confira os dados</span> : null}
         </div>
         {confirmando ? (
           <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 14 }}>
@@ -161,14 +185,14 @@ function CartaoVinculo({
             </button>
           </span>
         ) : (
-          <button type="button" className="btn btn-quiet" disabled={ocupado} onClick={() => (vinculo ? setConfirmando(true) : aoFechar?.())}>
+          <button type="button" className="btn btn-quiet" disabled={ocupado} onClick={() => (itemId ? setConfirmando(true) : void remover())}>
             Remover
           </button>
         )}
       </div>
 
       <div className="grid">
-        <Campo id={`v-tipo-${numero}`} rotulo="Tipo de vínculo" obrigatorio erro={erros.tipo}>
+        <Campo id={`v-tipo-${numero}`} rotulo="Tipo de vínculo" obrigatorio>
           <select id={`v-tipo-${numero}`} value={tipo} onChange={(e) => setTipo(e.target.value as TipoVinculo | "")}>
             <option value="">Selecione</option>
             <option value="privado">Setor privado (CLT ou contrato)</option>
@@ -176,17 +200,17 @@ function CartaoVinculo({
             <option value="autonomo">Autônomo ou prestação de serviços</option>
           </select>
         </Campo>
-        <Campo id={`v-emp-${numero}`} rotulo="Empregador ou contratante" obrigatorio erro={erros.empregador}>
+        <Campo id={`v-emp-${numero}`} rotulo="Empregador ou contratante" obrigatorio>
           <input id={`v-emp-${numero}`} value={empregador} onChange={(e) => setEmpregador(e.target.value)} placeholder="Nome da empresa ou órgão" />
         </Campo>
-        <Campo id={`v-cargo-${numero}`} rotulo="Cargo ou função" obrigatorio erro={erros.cargo}>
+        <Campo id={`v-cargo-${numero}`} rotulo="Cargo ou função" obrigatorio>
           <input id={`v-cargo-${numero}`} value={cargo} onChange={(e) => setCargo(e.target.value)} />
         </Campo>
         <div />
-        <Campo id={`v-ini-${numero}`} rotulo="Início (mês/ano)" obrigatorio erro={erros.inicio}>
+        <Campo id={`v-ini-${numero}`} rotulo="Início (mês/ano)" obrigatorio>
           <input id={`v-ini-${numero}`} type="month" value={inicio} max={MES_MAXIMO} placeholder="AAAA-MM" onChange={(e) => setInicio(e.target.value)} />
         </Campo>
-        <Campo id={`v-fim-${numero}`} rotulo="Fim (mês/ano)" erro={erros.fim}>
+        <Campo id={`v-fim-${numero}`} rotulo="Fim (mês/ano)">
           <input
             id={`v-fim-${numero}`}
             type="month"
@@ -212,7 +236,6 @@ function CartaoVinculo({
           id={`v-desc-${numero}`}
           rotulo="Descrição das atividades"
           obrigatorio
-          erro={erros.descricao}
           dica="Declarações genéricas, que não ligam você à atividade, não são consideradas."
           className="full"
         >
@@ -220,21 +243,22 @@ function CartaoVinculo({
         </Campo>
       </div>
 
-      {erroGeral ? (
+      {erroGeral && estado !== "erro" ? (
         <div className="alert alert-err" role="alert">
           <p>{erroGeral}</p>
         </div>
       ) : null}
+      <StatusAutoSalvar estado={estado} faltando={Object.values(erros)} erro={erroGeral} />
 
       <div className="docs">
         <h4>Documentos que comprovam este vínculo</h4>
-        {vinculo ? (
+        {itemId && tipo ? (
           <>
             <p className="hint" style={{ marginBottom: 4 }}>
-              <b>Obrigatório.</b> {DOCS_ACEITOS[vinculo.tipo].regra}
+              <b>Obrigatório.</b> {DOCS_ACEITOS[tipo].regra}
             </p>
             <ul className="hint" style={{ margin: "0 0 8px 18px" }}>
-              {DOCS_ACEITOS[vinculo.tipo].itens.map((t) => (
+              {DOCS_ACEITOS[tipo].itens.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
@@ -260,20 +284,14 @@ function CartaoVinculo({
               opcoesTipo={opcoes}
               rotulo="Documento"
               multiplo
-              referencia={{ vinculo_id: vinculo.id }}
-              docs={ctx.documentos.filter((d) => d.vinculo_id === vinculo.id)}
+              referencia={{ vinculo_id: itemId }}
+              docs={ctx.documentos.filter((d) => d.vinculo_id === itemId)}
               aoMudar={ctx.recarregar}
             />
           </>
         ) : (
-          <p className="hint">Salve o vínculo para liberar o envio dos documentos.</p>
+          <p className="hint">O envio dos documentos é liberado assim que o vínculo for salvo (preencha os campos acima).</p>
         )}
-      </div>
-
-      <div className="acoes-form" style={{ marginTop: 12 }}>
-        <button type="button" className="btn btn-sm" disabled={ocupado} onClick={() => void salvar()}>
-          {ocupado ? <span className="spin" aria-hidden /> : null} {vinculo ? "Salvar alterações" : "Salvar vínculo"}
-        </button>
       </div>
     </div>
   );
@@ -281,7 +299,9 @@ function CartaoVinculo({
 
 export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
   const nivel = ctx.inscricao?.nivel ?? null;
-  const [novos, setNovos] = useState<{ chave: number; valores?: RascunhoVinculo }[]>([]);
+  // Cartões novos (vazios ou vindos do currículo). Depois do 1º salvamento automático guardam o id criado, e o
+  // mesmo vínculo não aparece de novo na lista dos salvos enquanto o cartão novo estiver aberto.
+  const [novos, setNovos] = useState<{ chave: number; valores?: RascunhoVinculo; id?: string }[]>([]);
   const [contador, setContador] = useState(1);
   const [tentou, setTentou] = useState(false);
   // Guarda a REFERÊNCIA do último array já consumido: evita duplicar em desenvolvimento, onde o React
@@ -306,6 +326,7 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
   const [salvando, setSalvando] = useState(false);
 
   const simultaneos = idsSimultaneos(ctx.vinculos);
+  const salvosVisiveis = ctx.vinculos.filter((v) => !novos.some((n) => n.id === v.id));
   const validos = ctx.vinculos.map(intervalo).filter((x): x is [number, number] => x !== null);
   const soma = validos.reduce((t, [s, e]) => t + (e - s + 1), 0);
   // Só vínculo com comprovante conta no tempo (edital 3.1 "comprovar" e 5.3; mesma regra do banco).
@@ -319,6 +340,7 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
   async function continuar() {
     setTentou(false);
     setSalvando(true);
+    await salvarPendentes();
     const pend = await ctx.recarregar();
     setSalvando(false);
     setTentou(true);
@@ -356,17 +378,18 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
       ) : null}
 
       <div className="repeater">
-        {ctx.vinculos.map((v, i) => (
+        {salvosVisiveis.map((v, i) => (
           <CartaoVinculo key={v.id} ctx={ctx} vinculo={v} numero={i + 1} simultaneo={simultaneos.has(v.id)} />
         ))}
         {novos.map((n, i) => (
           <CartaoVinculo
             key={`novo-${n.chave}`}
             ctx={ctx}
-            numero={ctx.vinculos.length + i + 1}
-            simultaneo={false}
+            numero={salvosVisiveis.length + i + 1}
+            simultaneo={n.id ? simultaneos.has(n.id) : false}
             valoresIniciais={n.valores}
             aoFechar={() => setNovos((l) => l.filter((x) => x.chave !== n.chave))}
+            aoCriar={(id) => setNovos((l) => l.map((x) => (x.chave === n.chave ? { ...x, id } : x)))}
           />
         ))}
         {ctx.vinculos.length === 0 && novos.length === 0 ? <div className="empty">Nenhum vínculo cadastrado ainda.</div> : null}
