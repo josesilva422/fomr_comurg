@@ -113,7 +113,7 @@ export function FichaAvaliador({
               aria-label={`Justificativa — ${c.rotulo}`}
               value={justs[c.chave]}
               onChange={(e) => setJusts({ ...justs, [c.chave]: e.target.value })}
-              placeholder="Justificativa (o que o candidato respondeu que sustenta a nota)"
+              placeholder="Justifique"
               style={{ marginTop: 6, minHeight: 64 }}
             />
           </div>
