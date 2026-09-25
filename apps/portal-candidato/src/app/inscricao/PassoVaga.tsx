@@ -190,12 +190,16 @@ export function PassoVaga({ ctx }: { ctx: Contexto }) {
                 ) : req.modo === "obrig" ? (
                   <>
                     <span className="tag tag-obrig">Obrigatória</span> {req.pos}
+                    <br />
+                    <small style={{ color: "var(--muted)" }}>Com o certificado anexado na etapa 3.</small>
                   </>
                 ) : (
                   <>
                     <span className="tag tag-equiv">Exigida ou equivalência</span> {req.pos}
                     <br />
-                    <small style={{ color: "var(--muted)" }}>Equivalência: {req.equiv}</small>
+                    <small style={{ color: "var(--muted)" }}>
+                      Equivalência: {req.equiv} A pós, a experiência e a certificação só valem com os documentos anexados.
+                    </small>
                   </>
                 )
               }

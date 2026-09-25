@@ -4,7 +4,9 @@
 --   (2) pós-graduação que é o ÚNICO meio de cumprir o requisito do Pleno não pontua (Anexo I, item 1; 6.4.3);
 --   (6) avisos metodológicos citam o edital nas faixas de experiência (Anexo I, item 3; 6.4.2).
 -- e da migração 20260925110000_comprovante_experiencia_obrigatorio.sql:
---   (7) cada vínculo precisa do comprovante do item 5.3 — sem ele não conta na experiência e bloqueia o envio.
+--   (7) cada vínculo precisa do comprovante do item 5.3 — sem ele não conta na experiência e bloqueia o envio;
+-- e da migração 20260925120000_comprovante_pos_requisito.sql:
+--   (8) pós exigida (Sênior; Pleno sem equivalência) só vale com certificado anexado; equivalência do Pleno idem.
 -- Roda inteiro dentro de UMA transação que é desfeita no final: não deixa nenhum dado.
 -- Uso local:  psql "$DATABASE_URL" -f supabase/tests/fase9_motor_edital.test.sql
 -- Uso remoto: colar no SQL Editor do Supabase (ou via MCP execute_sql).
@@ -158,7 +160,7 @@ begin
                           'aviso das faixas de experiência não diz mais "convenção assumida"');
   t := t || pg_temp.igual(((av.detalhamento -> 'avisos_metodologicos')::text like '%Anexo I, item 3, e item 6.4.2%')::text, 'true',
                           'aviso das faixas de experiência cita o edital');
-  t := t || pg_temp.igual(av.versao_motor, 'v6-2026-09-25', 'versão do motor');
+  t := t || pg_temp.igual(av.versao_motor, 'v7-2026-09-25', 'versão do motor');
 
   ---------------------------------------------------------------- (7) comprovante de experiência (5.3)
   declare
@@ -209,6 +211,65 @@ begin
     perform set_config('request.jwt.claims', '', true);
     t := t || pg_temp.igual((pend like '%Prefeitura Teste%' and pend not like '%Empresa Teste%' and pend not like '%Cliente Teste%')::text, 'true',
                             'pendência bloqueante só para o vínculo sem comprovante: ' || coalesce(pend, 'nenhuma'));
+  end;
+
+  ---------------------------------------------------------------- (8) pós exigida só com certificado (migração 20260925120000)
+  declare
+    v_insc uuid; v_tit uuid; v_cert uuid; pend text;
+  begin
+    execute $f$create function pg_temp.pend(p_n int) returns text language plpgsql as $b$
+      declare r text;
+      begin
+        perform set_config('request.jwt.claims', json_build_object('sub', ('f9000000-0000-0000-0000-' || lpad(p_n::text, 12, '0')), 'role', 'authenticated')::text, true);
+        execute 'set local role authenticated';
+        select string_agg(mensagem, ' | ') into r from publico.verificar_inscricao() where codigo = 'pos_sem_comprovante' and bloqueia;
+        execute 'reset role';
+        perform set_config('request.jwt.claims', '', true);
+        return r;
+      end $b$
+    $f$;
+
+    -- Sênior com 9 anos comprovados e pós SEM certificado: inabilitado e envio bloqueado.
+    v_insc := pg_temp.cand(10, '22233344073', 'A', 'senior', 'Engenharia Civil', '2015-01-01', '2023-12-01');
+    insert into publico.titulos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+      values (v_insc, 'especializacao', 'Gestão de Obras', 'FGV', 400, '2018-06-01') returning id into v_tit;
+    av := interno.calcular_avaliacao(v_insc);
+    t := t || pg_temp.igual((av.motivos @> '[{"codigo": "pos_obrigatoria_ausente"}]')::text, 'true', 'Sênior com pós sem certificado: requisito não comprovado');
+    t := t || pg_temp.igual((pg_temp.pend(10) like 'Nível Sênior%')::text, 'true', 'Sênior com pós sem certificado: pendência bloqueante no envio');
+    insert into publico.documentos (inscricao_id, tipo, titulo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+      values (v_insc, 'diploma_pos', v_tit, v_insc || '/diploma_pos/' || gen_random_uuid() || '.pdf', 'pos.pdf', md5(v_tit::text) || md5('x'), 'application/pdf', 1000);
+    av := interno.calcular_avaliacao(v_insc);
+    t := t || pg_temp.igual((av.motivos @> '[{"codigo": "pos_obrigatoria_ausente"}]')::text, 'false', 'Sênior com certificado anexado: requisito de pós atendido');
+    t := t || pg_temp.igual(pg_temp.pend(10), null, 'Sênior com certificado anexado: sem pendência de pós');
+
+    -- Pleno (48 meses) com pós sem certificado: inabilitado; com certificado: habilita e a pós não pontua.
+    v_insc := pg_temp.cand(11, '22233344154', 'C', 'pleno', 'Direito', '2020-01-01', '2023-12-01');
+    insert into publico.titulos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+      values (v_insc, 'especializacao', 'Direito Administrativo', 'PUC', 400, '2018-06-01') returning id into v_tit;
+    av := interno.calcular_avaliacao(v_insc);
+    t := t || pg_temp.igual((av.motivos @> '[{"codigo": "pos_ou_equivalencia_ausente"}]')::text, 'true', 'Pleno com pós sem certificado e sem equivalência: requisito não comprovado');
+    t := t || pg_temp.igual((pg_temp.pend(11) like 'Nível Pleno%5 anos de experiência comprovada.')::text, 'true', 'Pleno (Grupo C): pendência sem citar certificação');
+    insert into publico.documentos (inscricao_id, tipo, titulo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+      values (v_insc, 'diploma_pos', v_tit, v_insc || '/diploma_pos/' || gen_random_uuid() || '.pdf', 'pos.pdf', md5(v_tit::text) || md5('y'), 'application/pdf', 1000);
+    av := interno.calcular_avaliacao(v_insc);
+    t := t || pg_temp.igual(av.habilitado::text, 'true', 'Pleno com certificado da pós: habilitado');
+    t := t || pg_temp.igual(av.pontos_formacao::text, '0.00', 'Pleno: pós usada como requisito continua sem pontuar');
+
+    -- Pleno B com PMP SEM certificado anexado e sem pós: não vale como equivalência; com certificado, vale.
+    v_insc := pg_temp.cand(12, '22233344235', 'B', 'pleno', 'Administração', '2020-01-01', '2023-12-01');
+    insert into publico.cursos_declarados (inscricao_id, tipo, denominacao, instituicao, data_conclusao, numero_credencial, codigo_verificacao)
+      values (v_insc, 'certificacao', 'PMP', 'PMI', '2021-01-01', '999', 'COD-999') returning id into v_cert;
+    t := t || pg_temp.igual(interno.pleno_tem_equivalencia(v_insc)::text, 'false', 'PMP sem certificado anexado não é equivalência');
+    t := t || pg_temp.igual((pg_temp.pend(12) like '%certificação PMP, PgMP, PRINCE2 ou IPMA ativa%')::text, 'true', 'Pleno (Grupo B): pendência cita a certificação');
+    insert into publico.documentos (inscricao_id, tipo, curso_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+      values (v_insc, 'certificacao_profissional', v_cert, v_insc || '/cursos/' || gen_random_uuid() || '.pdf', 'pmp.pdf', md5(v_cert::text) || md5('z'), 'application/pdf', 1000);
+    t := t || pg_temp.igual(interno.pleno_tem_equivalencia(v_insc)::text, 'true', 'PMP com certificado anexado: equivalência');
+    t := t || pg_temp.igual(pg_temp.pend(12), null, 'Pleno B com PMP comprovada: sem pendência de pós');
+
+    -- Pleno com 5 anos comprovados e nenhuma pós: sem pendência (equivalência).
+    v_insc := pg_temp.cand(13, '22233344316', 'A', 'pleno', 'Engenharia Civil', '2018-01-01', '2023-12-01');
+    t := t || pg_temp.igual(pg_temp.pend(13), null, 'Pleno com 72 meses comprovados: equivalência, sem pendência de pós');
+    t := t || pg_temp.igual((interno.calcular_avaliacao(v_insc)).habilitado::text, 'true', 'Pleno com 72 meses comprovados e sem pós: habilitado');
   end;
 
   ---------------------------------------------------------------- resultado (a exceção desfaz TUDO)

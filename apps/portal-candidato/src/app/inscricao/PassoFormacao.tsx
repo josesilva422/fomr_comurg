@@ -111,7 +111,10 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
     const pend = await ctx.recarregar();
     setSalvando(false);
     setTentou(true);
-    if (!pend.some((p) => p.etapa === 3)) ctx.irPara(4);
+    // No Pleno, a pós pode ser substituída pela experiência (etapa 4): essa pendência não segura o avanço —
+    // continua bloqueando o envio final se a equivalência não for comprovada.
+    const seguram = pend.filter((p) => p.etapa === 3 && !(p.codigo === "pos_sem_comprovante" && insc.nivel === "pleno"));
+    if (seguram.length === 0) ctx.irPara(4);
   }
 
   const docs = (tipo: string) => docsDoTipo(ctx.documentos, tipo);
@@ -314,8 +317,30 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
       <p className="sub">
         Só pontuam títulos concluídos até a publicação do edital (28/09/2026), de instituição credenciada pelo MEC ou curso
         recomendado pela CAPES, e que <b>não</b> tenham sido usados para cumprir o requisito mínimo.
-        {req.modo !== "nao" ? " Para este grupo e nível, a pós-graduação é tratada nos requisitos da etapa 2." : ""}
       </p>
+      {req.modo !== "nao" ? (
+        <div className="alert alert-info">
+          <p>
+            {req.modo === "obrig" ? (
+              <>
+                <b>Pós-graduação obrigatória para este nível.</b> Cadastre abaixo a especialização em {req.pos} e anexe o certificado.
+              </>
+            ) : (
+              <>
+                <b>Pós-graduação exigida para este nível</b> ({req.pos}). Cadastre a especialização abaixo e anexe o certificado. Equivalência:{" "}
+                {req.equiv} A experiência só vale com os comprovantes anexados na etapa 4
+                {insc.grupo === "B" ? ", e a certificação só vale com o certificado anexado" : ""}.
+              </>
+            )}
+          </p>
+          <p style={{ marginTop: 6 }}>
+            O certificado deve conter seu nome, a denominação do curso, carga horária mínima de 360 horas e a data de conclusão, emitido por instituição
+            credenciada pelo MEC ou com curso recomendado pela CAPES. Sem o certificado anexado, não é possível enviar a inscrição
+            {req.modo === "equiv" ? " (a não ser que a equivalência esteja comprovada)" : ""}. A especialização usada para cumprir este requisito não
+            conta pontos na análise curricular.
+          </p>
+        </div>
+      ) : null}
       <div className="repeater">
         {ctx.titulos.map((t, i) => (
           <CartaoTitulo key={t.id} ctx={ctx} titulo={t} numero={i + 1} />

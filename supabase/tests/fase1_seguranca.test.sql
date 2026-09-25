@@ -72,6 +72,11 @@ begin
         (p_insc, 'identidade', null, p_insc || '/identidade/' || gen_random_uuid() || '.pdf', 'rg.pdf', repeat('a', 64), 'application/pdf', 1000),
         (p_insc, 'diploma_graduacao', null, p_insc || '/diploma_graduacao/' || gen_random_uuid() || '.pdf', 'diploma.pdf', repeat('b', 64), 'application/pdf', 1000),
         (p_insc, 'experiencia_ctps', v, p_insc || '/experiencia_ctps/' || gen_random_uuid() || '.pdf', 'ctps.pdf', repeat('c', 64), 'application/pdf', 1000);
+      -- B Pleno sem 5 anos: a pós é o requisito e precisa do certificado anexado (migração 20260925120000)
+      insert into publico.titulos_declarados (inscricao_id, tipo, denominacao, instituicao, carga_horaria, data_conclusao)
+        values (p_insc, 'especializacao', 'Especialização em Gestão de Projetos', 'UFG', 400, '2015-06-01') returning id into v;
+      insert into publico.documentos (inscricao_id, tipo, titulo_id, storage_path, nome_original, sha256, mime, tamanho_bytes)
+        values (p_insc, 'diploma_pos', v, p_insc || '/diploma_pos/' || gen_random_uuid() || '.pdf', 'pos.pdf', repeat('e', 64), 'application/pdf', 1000);
       if p_pix then
         insert into publico.documentos (inscricao_id, tipo, storage_path, nome_original, sha256, mime, tamanho_bytes)
           values (p_insc, 'comprovante_pix', p_insc || '/comprovante_pix/' || gen_random_uuid() || '.png', 'pix.png', repeat('d', 64), 'image/png', 1000);
@@ -229,7 +234,8 @@ begin
   select publico.submeter_inscricao() into st;
   t := t || pg_temp.igual(st::text, 'submetida', 'envio funciona mesmo com o aviso de título sem documento');
   perform pg_temp.admin();
-  select av.pontos_formacao::text into p from interno.calcular_avaliacao(ia) av;
+  select x ->> 'pontos' into p from interno.calcular_avaliacao(ia) av, jsonb_array_elements(av.detalhamento #> '{formacao,itens}') x
+    where x ->> 'denominacao' = 'MBA em Gestão';
   t := t || pg_temp.igual(p, '0.00', 'título sem documento não pontua no motor de regras');
 
   -- Especialização/MBA sem limite de quantidade (edital atualizado 22/09/2026, Anexo I item 1 — migração

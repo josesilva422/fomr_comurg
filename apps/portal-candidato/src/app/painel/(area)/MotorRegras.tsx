@@ -88,7 +88,8 @@ export function MotorRegrasBotao() {
                   <td>
                     <b>Júnior:</b> não exige. <b>Pleno:</b> título de especialização <i>ou</i> 5 anos de experiência <i>ou</i> (só Grupo B) certificação
                     PMP/PgMP/PRINCE2/IPMA ativa, com credencial e código de verificação — se a especialização for o único meio de cumprir o requisito, ela não pontua
-                    depois. <b>Sênior:</b> exige especialização (esse título não pontua depois).
+                    depois. <b>Sênior:</b> exige especialização (esse título não pontua depois). Só vale especialização com certificado anexado; no Pleno,
+                    a experiência da equivalência só conta com comprovantes e a certificação só com o certificado anexado.
                   </td>
                 </tr>
               </tbody>
