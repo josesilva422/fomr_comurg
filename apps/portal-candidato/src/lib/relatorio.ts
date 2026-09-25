@@ -71,8 +71,8 @@ const FORMATO: Record<string, string> = { fisico: "Físico", digital: "Digital" 
 const STATUS: Record<string, string> = {
   submetida: "Enviada",
   aguardando_isencao: "Enviada — aguardando decisão da isenção",
-  homologada: "Homologada",
-  indeferida: "Indeferida",
+  homologada: "Aprovada (homologada)",
+  indeferida: "Rejeitada (indeferida)",
   cancelada: "Cancelada",
 };
 

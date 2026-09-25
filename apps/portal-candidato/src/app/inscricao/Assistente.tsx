@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Candidato, Inscricao } from "@/lib/tipos";
@@ -13,6 +13,7 @@ import { PassoFormacao } from "./PassoFormacao";
 import { PassoPagamento } from "./PassoPagamento";
 import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
+import { MeuFormulario } from "./MeuFormulario";
 import { ResultadoIsencao, situacaoIsencao, useMinhaIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
@@ -214,6 +215,16 @@ export function Assistente(props: DadosIniciais) {
 function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Candidato | null }) {
   const noFluxoIsencao = inscricao.status === "aguardando_isencao";
   const isencao = useMinhaIsencao(noFluxoIsencao);
+  const rejeitada = inscricao.status === "indeferida";
+  const rejeicao = useRejeicao(rejeitada);
+  const situacao =
+    inscricao.status === "homologada"
+      ? "inscrição aprovada"
+      : rejeitada
+        ? "inscrição rejeitada"
+        : noFluxoIsencao
+          ? situacaoIsencao(isencao.res, isencao.docs)
+          : "recebida, aguardando homologação";
   const protocolo = `PSS-2026-${inscricao.id.slice(0, 8).toUpperCase()}`;
   const quando = inscricao.submetida_em
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(inscricao.submetida_em))
@@ -233,10 +244,44 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
         {quando ? <p style={{ color: "var(--muted)", fontSize: 14 }}>Enviada em {quando}</p> : null}
         <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
           Situação:{" "}
-          <b>{noFluxoIsencao ? situacaoIsencao(isencao.res, isencao.docs) : "recebida, aguardando homologação"}</b>
+          <b>{situacao}</b>
         </p>
       </section>
+      {rejeitada ? (
+        <section className="card" style={{ marginTop: 16 }}>
+          <h3>Inscrição rejeitada</h3>
+          <div className="alert alert-err">
+            <p>
+              <b>Motivo informado pela Comissão:</b> {rejeicao ? (rejeicao.motivo ?? "—") : "carregando…"}
+            </p>
+          </div>
+          <p className="hint">
+            Cabe recurso contra o indeferimento da inscrição (item 9.1, alínea b do edital), no prazo de 3 dias úteis contados do dia útil seguinte à
+            publicação do resultado (Anexo IV: 21, 22 e 23/10/2026). O recurso é enviado exclusivamente pelo e-mail pss2026comurg@comurg.com.br, com o
+            formulário do Anexo VI preenchido e assinado, e &quot;RECURSO&quot;, a etapa, o seu nome e o Grupo/Nível no assunto (item 9.2).
+          </p>
+        </section>
+      ) : null}
       {noFluxoIsencao ? <ResultadoIsencao inscricaoId={inscricao.id} isencao={isencao} /> : null}
+      <MeuFormulario />
     </main>
   );
+}
+
+/** Motivo da rejeição da inscrição (publico.minha_decisao_inscricao); só busca quando a inscrição foi rejeitada. */
+function useRejeicao(ativo: boolean) {
+  const [res, setRes] = useState<{ motivo: string | null } | null>(null);
+  useEffect(() => {
+    if (!ativo) return;
+    let vivo = true;
+    createClient()
+      .rpc("minha_decisao_inscricao")
+      .then(({ data }: { data: { decisao: string; motivo: string | null }[] | null }) => {
+        if (vivo) setRes({ motivo: data?.[0]?.motivo ?? null });
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [ativo]);
+  return res;
 }

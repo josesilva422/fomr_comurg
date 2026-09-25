@@ -23,6 +23,7 @@ const ITENS = [
     grupo: "Inscrições",
     links: [
       { href: "/painel/isencoes", rotulo: "Isenção da taxa", dica: "Analisar documentos e decidir", ativo: (p: string) => p.startsWith("/painel/isencoes") },
+      { href: "/painel/homologacao", rotulo: "Homologação", dica: "Aprovar ou rejeitar inscrições", ativo: (p: string) => p.startsWith("/painel/homologacao") },
     ],
   },
   {
