@@ -11,7 +11,8 @@ export const COMPETENCIAS = [
 export type ChaveCompetencia = (typeof COMPETENCIAS)[number]["chave"];
 export const TOTAL_ENTREVISTA = 40;
 export const CORTE_ENTREVISTA = 15; // item 6.5.7
-export const BANCA_MINIMA = 3; // item 6.5.2
+export const BANCA_MINIMA = 3; // item 6.5.2 — a média só aparece a partir daqui
+export const MAXIMO_FICHAS = 10; // limite de fichas por candidato (decisão do responsável, 25/09/2026)
 
 /** Faixa do Anexo II para a nota: peso 10 → 0–3/4–6/7–8/9–10; peso 5 → 0–1/2–3/4/5. */
 export function faixa(nota: number, peso: number): string {
@@ -39,15 +40,35 @@ export interface FichaEntrevista {
   updated_at: string;
 }
 
+/**
+ * Visão de UM candidato para o usuário logado (painel.entrevista_do_candidato). Fichas cegas: nunca vem a nota de
+ * outro avaliador — só a contagem, os nomes de quem já enviou e, com 3+ fichas, a média.
+ */
 export interface EntrevistaDoCandidato {
   convocado: boolean;
   ac: number | null;
   n_fichas: number;
+  minimo_fichas: number;
+  maximo_fichas: number;
+  media_liberada: boolean;
   et: number | null;
   pf: number | null;
-  banca_completa: boolean;
   abaixo_do_corte: boolean;
-  fichas: FichaEntrevista[];
+  media_por_competencia: Record<ChaveCompetencia, number> | null;
+  avaliadores: { nome: string; enviada_em: string }[];
+  minha_ficha: FichaEntrevista | null;
+}
+
+/** Linha da página "Minhas fichas" (painel.minhas_entrevistas). */
+export interface MinhaEntrevista {
+  inscricao_id: string;
+  nome: string;
+  grupo: "A" | "B" | "C";
+  nivel: "junior" | "pleno" | "senior";
+  n_fichas: number;
+  media_liberada: boolean;
+  minha_ficha_total: number | null;
+  minha_ficha_em: string | null;
 }
 
 export interface LinhaClassificacao {

@@ -185,7 +185,7 @@ export function MotorRegrasBotao() {
                 (5) e Postura e aderência (5). Nota inteira, com justificativa obrigatória.
               </li>
               <li>
-                <b>ET = média</b> das notas totais dos avaliadores (6.5.5), e a banca tem no mínimo 3 membros (6.5.2). Enquanto houver menos de 3 fichas lançadas, o sistema mostra a média como <b>provisória</b> (aviso do sistema; o edital não diz o que fazer nesse caso).
+                <b>ET = média</b> das notas totais dos avaliadores (6.5.5), e a banca tem no mínimo 3 membros (6.5.2). Cada avaliador envia a própria ficha (no máximo 10 por candidato) e ninguém vê a nota de outro avaliador; a média só aparece a partir de 3 fichas.
               </li>
               <li>Abaixo de 15 pontos o edital prevê eliminação (6.5.7): o sistema <b>só sinaliza</b>, a decisão é da Comissão.</li>
             </ul>

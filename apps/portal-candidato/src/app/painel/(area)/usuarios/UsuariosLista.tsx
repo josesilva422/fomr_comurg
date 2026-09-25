@@ -10,7 +10,6 @@ interface Avaliado {
   grupo: string | null;
   nivel: string | null;
   avaliador_informado: string;
-  total: number;
   lancada_em: string;
 }
 
@@ -105,13 +104,13 @@ function LinhaUsuario({ u, aberto, alternar }: { u: UsuarioPainel; aberto: boole
         <tr>
           <td colSpan={7}>
             <p className="hint" style={{ marginTop: 0 }}>
-              Candidatos avaliados por {u.nome} (fichas de entrevista técnica lançadas com este login):
+              Candidatos avaliados por {u.nome} (fichas de entrevista técnica enviadas com este login — as notas não aparecem aqui):
             </p>
             <ul style={{ margin: "6px 0", paddingLeft: 18 }}>
               {u.avaliados.map((a) => (
                 <li key={`${a.inscricao_id}-${a.lancada_em}`}>
                   <Link href={`/painel/candidato/${a.inscricao_id}?aba=entrevista`}>{a.candidato}</Link>
-                  {a.grupo && a.nivel ? ` — ${a.grupo} · ${a.nivel}` : ""} — total {a.total} — lançada em {fmtData(a.lancada_em)}
+                  {a.grupo && a.nivel ? ` — ${a.grupo} · ${a.nivel}` : ""} — enviada em {fmtData(a.lancada_em)}
                   {a.avaliador_informado !== u.nome ? <small className="hint"> (nome informado na ficha: {a.avaliador_informado})</small> : null}
                 </li>
               ))}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Grupo, Nivel } from "@/lib/tipos";
-import { fmtNota, type LinhaClassificacao } from "@/lib/entrevista";
+import { BANCA_MINIMA, fmtNota, type LinhaClassificacao } from "@/lib/entrevista";
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 
@@ -101,7 +101,7 @@ export function ClassificacaoTabela() {
                     ) : l.abaixo_do_corte ? (
                       <span className="pill pill-err">Abaixo de 15 pts (6.5.7)</span>
                     ) : !l.banca_completa ? (
-                      <span className="pill pill-muted">Banca incompleta ({l.n_fichas})</span>
+                      <span className="pill pill-muted">Aguardando fichas ({l.n_fichas} de {BANCA_MINIMA})</span>
                     ) : (
                       <span className="pill pill-ok">Classificado</span>
                     )}

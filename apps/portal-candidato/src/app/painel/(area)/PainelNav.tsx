@@ -10,7 +10,13 @@ const ITENS = [
     grupo: "Classificação final",
     links: [
       { href: "/painel", rotulo: "Análise curricular", dica: "Pontuação, habilitação e convocação", ativo: (p: string) => p === "/painel" || p.startsWith("/painel/candidato") },
-      { href: "/painel/classificacao", rotulo: "Entrevista técnica", dica: "AC + entrevista = PF e posição", ativo: (p: string) => p.startsWith("/painel/classificacao") },
+      { href: "/painel/classificacao", rotulo: "Entrevista técnica — geral", dica: "Média (a partir de 3 fichas), PF e posição", ativo: (p: string) => p.startsWith("/painel/classificacao") },
+    ],
+  },
+  {
+    grupo: "Avaliador",
+    links: [
+      { href: "/painel/fichas", rotulo: "Minhas fichas", dica: "Minha nota em cada convocado", ativo: (p: string) => p.startsWith("/painel/fichas") },
     ],
   },
   {

@@ -7,10 +7,11 @@ export default function ClassificacaoPage() {
     <div className="card">
       <header className="step-head">
         <p className="eyebrow">Classificação final · Entrevista técnica</p>
-        <h2>Classificação — análise curricular + entrevista</h2>
+        <h2>Entrevista técnica — visão geral</h2>
         <p className="lead">
-          PF = AC (máx. 60) + ET (máx. 40), por Grupo e Nível, só com os convocados para a entrevista. Clique num candidato e abra a aba &quot;Entrevista
-          técnica&quot; para lançar as fichas dos avaliadores. Nada aqui é publicado ao candidato.
+          PF = AC (máx. 60) + ET (máx. 40), por Grupo e Nível, só com os convocados para a entrevista. A ET é a média das fichas dos avaliadores e só
+          aparece quando o candidato tem pelo menos 3 fichas; a nota de cada avaliador não aparece aqui. Cada avaliador envia a sua em &quot;Minhas
+          fichas&quot;. Nada aqui é publicado ao candidato.
         </p>
       </header>
       <ClassificacaoTabela />
