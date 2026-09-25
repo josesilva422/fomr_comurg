@@ -1,12 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Grupo, Nivel } from "@/lib/tipos";
 import type { AvaliacaoResumo } from "@/lib/pontuacao";
+import { ConviteEntrevista } from "./entrevista/ConviteEntrevista";
+
+interface ResumoConvite {
+  inscricao_id: string;
+  data: string;
+  horario: string;
+  email_enviado: boolean | null;
+}
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+const fmtDia = (iso: string) => iso.split("-").reverse().join("/");
 
 export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
   const router = useRouter();
@@ -15,6 +25,15 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
   const [nivel, setNivel] = useState<Nivel | "todos">("todos");
   const [soConvocaveis, setSoConvocaveis] = useState(false);
   const [busca, setBusca] = useState("");
+  const [convites, setConvites] = useState<Record<string, ResumoConvite>>({});
+  const [versaoConvites, setVersaoConvites] = useState(0);
+
+  useEffect(() => {
+    createClient()
+      .schema("painel")
+      .rpc("convites_entrevista_resumo")
+      .then(({ data }: { data: ResumoConvite[] | null }) => setConvites(Object.fromEntries((data ?? []).map((c) => [c.inscricao_id, c]))));
+  }, [versaoConvites]);
 
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -119,7 +138,24 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
                   </td>
                   <td>
                     {a.convocado ? (
-                      <span className="pill pill-ok">Convocado{a.posicao ? ` (${a.posicao}º)` : ""}</span>
+                      <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+                        <span className="pill pill-ok">Convocado{a.posicao ? ` (${a.posicao}º)` : ""}</span>
+                        {convites[a.inscricao_id] ? (
+                          <small className="hint">
+                            Convite: {fmtDia(convites[a.inscricao_id].data)} às {convites[a.inscricao_id].horario}
+                            {convites[a.inscricao_id].email_enviado ? "" : " (e-mail não enviado)"}
+                          </small>
+                        ) : null}
+                        <ConviteEntrevista
+                          inscricaoId={a.inscricao_id}
+                          nome={a.nome}
+                          grupo={a.grupo}
+                          nivel={a.nivel}
+                          jaConvidado={Boolean(convites[a.inscricao_id])}
+                          aoEnviar={() => setVersaoConvites((v) => v + 1)}
+                          pequeno
+                        />
+                      </div>
                     ) : a.posicao ? (
                       <span className="pill pill-muted">
                         {a.posicao}º, fora do corte ({a.vagas} vaga{a.vagas === 1 ? "" : "s"} × 3)

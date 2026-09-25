@@ -3,13 +3,29 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BANCA_MINIMA, COMPETENCIAS, CORTE_ENTREVISTA, TOTAL_ENTREVISTA, fmtNota, type EntrevistaDoCandidato } from "@/lib/entrevista";
+import type { Grupo, Nivel } from "@/lib/tipos";
 import { FichaAvaliador } from "../../entrevista/FichaAvaliador";
+import { ConviteEntrevista } from "../../entrevista/ConviteEntrevista";
+
+interface ConviteHistorico {
+  id: string;
+  titulo: string;
+  data: string;
+  horario: string;
+  link: string;
+  orientacoes: string | null;
+  email_para: string;
+  criado_em: string;
+  enviado_por: string | null;
+  email_enviado: boolean | null;
+  email_erro: string | null;
+}
 
 const fmtData = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 // Entrevista técnica de um candidato: visão GERAL (quantas fichas, quem já enviou, média só com 3+) e a ficha do
 // PRÓPRIO avaliador logado. Fichas cegas: a nota de cada avaliador nunca aparece para outra pessoa (edital 6.5.5).
-export function EntrevistaSecao({ inscricaoId }: { inscricaoId: string }) {
+export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricaoId: string; nome: string; grupo: Grupo; nivel: Nivel }) {
   const [dados, setDados] = useState<EntrevistaDoCandidato | null>(null);
   const [erro, setErro] = useState("");
   const [tick, setTick] = useState(0);
@@ -131,6 +147,8 @@ export function EntrevistaSecao({ inscricaoId }: { inscricaoId: string }) {
         </p>
       ) : null}
 
+      <ConvitesSecao inscricaoId={inscricaoId} nome={nome} grupo={grupo} nivel={nivel} />
+
       <FichaAvaliador
         key={dados.minha_ficha?.updated_at ?? "nova"}
         inscricaoId={inscricaoId}
@@ -138,6 +156,62 @@ export function EntrevistaSecao({ inscricaoId }: { inscricaoId: string }) {
         limiteAtingido={dados.n_fichas >= dados.maximo_fichas}
         aoSalvar={() => setTick((t) => t + 1)}
       />
+    </div>
+  );
+}
+
+// Convite para a entrevista (item 6.5.1): botão + histórico dos convites enviados a este candidato.
+function ConvitesSecao({ inscricaoId, nome, grupo, nivel }: { inscricaoId: string; nome: string; grupo: Grupo; nivel: Nivel }) {
+  const [convites, setConvites] = useState<ConviteHistorico[] | null>(null);
+  const [erro, setErro] = useState("");
+  const [versao, setVersao] = useState(0);
+
+  useEffect(() => {
+    createClient()
+      .schema("painel")
+      .rpc("convites_entrevista_do_candidato", { p_inscricao_id: inscricaoId })
+      .then(({ data, error }: { data: ConviteHistorico[] | null; error: { message: string } | null }) => {
+        if (error) setErro(error.message);
+        else setConvites(data ?? []);
+      });
+  }, [inscricaoId, versao]);
+
+  const fmtDia = (iso: string) => iso.split("-").reverse().join("/");
+
+  return (
+    <div className="card" style={{ margin: "16px 0", padding: 16 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <h4 style={{ margin: 0 }}>Convite para a entrevista</h4>
+        <ConviteEntrevista
+          inscricaoId={inscricaoId}
+          nome={nome}
+          grupo={grupo}
+          nivel={nivel}
+          jaConvidado={Boolean(convites?.length)}
+          aoEnviar={() => setVersao((v) => v + 1)}
+          pequeno
+        />
+      </div>
+      {erro ? <p className="err">{erro}</p> : null}
+      {convites && convites.length === 0 ? <p className="hint">Nenhum convite enviado ainda.</p> : null}
+      {convites && convites.length > 0 ? (
+        <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+          {convites.map((c, i) => (
+            <li key={c.id} style={{ marginBottom: 6 }}>
+              <b>{fmtDia(c.data)} às {c.horario}</b> · {c.titulo}
+              {i === 0 ? " (vigente)" : " (substituído)"} ·{" "}
+              <a href={c.link} target="_blank" rel="noopener noreferrer">
+                link da reunião
+              </a>
+              <div className="hint">
+                Enviado em {fmtData(c.criado_em)}
+                {c.enviado_por ? ` por ${c.enviado_por}` : ""} para {c.email_para} —{" "}
+                {c.email_enviado ? "e-mail enviado" : `e-mail NÃO enviado${c.email_erro ? ` (${c.email_erro})` : ""}; o candidato vê o convite no portal`}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

@@ -173,7 +173,7 @@ export function DetalheCandidato({ inscricaoId, resumo, avaliacaoInicial, abaIni
         <AnaliseAba resumo={resumo} avaliacao={avaliacao} />
       </div>
       <div role="tabpanel" hidden={aba !== "entrevista"}>
-        <EntrevistaSecao inscricaoId={inscricaoId} />
+        <EntrevistaSecao inscricaoId={inscricaoId} nome={resumo.nome} grupo={resumo.grupo} nivel={resumo.nivel} />
       </div>
       <div role="tabpanel" hidden={aba !== "formulario"}>
         <FormularioAba inscricaoId={inscricaoId} />

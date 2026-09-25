@@ -14,6 +14,7 @@ import { PassoPagamento } from "./PassoPagamento";
 import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
 import { MeuFormulario } from "./MeuFormulario";
+import { MeuConviteEntrevista } from "./MeuConviteEntrevista";
 import { ResultadoIsencao, situacaoIsencao, useMinhaIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
@@ -262,6 +263,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
           </p>
         </section>
       ) : null}
+      {inscricao.status === "homologada" || inscricao.status === "submetida" || noFluxoIsencao ? <MeuConviteEntrevista /> : null}
       {noFluxoIsencao ? <ResultadoIsencao inscricaoId={inscricao.id} isencao={isencao} /> : null}
       <MeuFormulario />
     </main>

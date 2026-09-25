@@ -1,14 +1,10 @@
-import nodemailer from "nodemailer";
+import { enviarEmail, escaparHtml as escapar } from "./email";
+
+export { smtpConfigurado } from "./email";
 
 // Modelo de e-mail do CONVITE para o painel. (O e-mail do código de acesso é enviado pelo Supabase Auth, com o modelo
-// configurado lá.) O envio usa o SMTP das variáveis de ambiente SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS e SMTP_FROM;
-// se faltar alguma, não envia e devolve `false` para a tela mostrar o link ao convidante.
-export function smtpConfigurado(): boolean {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-}
-
-const escapar = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-
+// configurado lá.) Envio pelo SMTP de src/lib/email.ts; se não estiver configurado, devolve `false` para a tela mostrar
+// o link ao convidante.
 export function montarConvite(link: string, convidadoPor: string) {
   const quem = escapar(convidadoPor);
   const url = escapar(link);
@@ -35,15 +31,5 @@ export function montarConvite(link: string, convidadoPor: string) {
 }
 
 export async function enviarConvite(para: string, link: string, convidadoPor: string): Promise<boolean> {
-  if (!smtpConfigurado()) return false;
-  const porta = Number(process.env.SMTP_PORT ?? 465);
-  const transporte = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: porta,
-    secure: porta === 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-  const { assunto, texto, html } = montarConvite(link, convidadoPor);
-  await transporte.sendMail({ from: process.env.SMTP_FROM ?? process.env.SMTP_USER, to: para, subject: assunto, text: texto, html });
-  return true;
+  return enviarEmail(para, montarConvite(link, convidadoPor));
 }
