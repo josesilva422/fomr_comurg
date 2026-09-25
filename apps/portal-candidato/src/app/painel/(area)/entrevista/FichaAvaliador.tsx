@@ -84,44 +84,69 @@ export function FichaAvaliador({
 
   return (
     <div className="card" style={{ marginTop: 12 }}>
-      <h4 style={{ marginTop: 0 }}>{minhaFicha ? "Minha ficha (enviada — pode corrigir)" : "Minha ficha"}</h4>
-      <p className="hint">
-        Só você vê as suas notas. Os outros avaliadores e a Comissão veem apenas que a sua ficha foi enviada e, com pelo menos 3 fichas, a média.
-      </p>
-      {COMPETENCIAS.map((c) => {
+      <div className="ficha-topo">
+        <div>
+          <h4>{minhaFicha ? "Minha ficha (enviada — pode corrigir)" : "Minha ficha"}</h4>
+          <p className="hint">
+            Só você vê as suas notas. Os outros avaliadores e a Comissão veem apenas que a sua ficha foi enviada e, com pelo menos 3 fichas, a média.
+          </p>
+        </div>
+      </div>
+      {COMPETENCIAS.map((c, i) => {
         const n = Number(notas[c.chave]);
         const ok = notas[c.chave] !== "" && Number.isInteger(n) && n >= 0 && n <= c.peso;
         return (
-          <div key={c.chave} className="field" style={{ marginBottom: 14 }}>
-            <label htmlFor={`n-${inscricaoId}-${c.chave}`}>
-              {c.rotulo} <span className="hint">(peso {c.peso})</span>
-              {ok ? <span className="hint"> — {faixa(n, c.peso)}</span> : null}
-            </label>
-            <input
-              id={`n-${inscricaoId}-${c.chave}`}
-              type="number"
-              min={0}
-              max={c.peso}
-              step={1}
-              inputMode="numeric"
-              value={notas[c.chave]}
-              onChange={(e) => setNotas({ ...notas, [c.chave]: e.target.value })}
-              style={{ maxWidth: 120 }}
-              placeholder={`0 a ${c.peso}`}
-            />
-            <textarea
-              aria-label={`Justificativa — ${c.rotulo}`}
-              value={justs[c.chave]}
-              onChange={(e) => setJusts({ ...justs, [c.chave]: e.target.value })}
-              placeholder="Justifique"
-              style={{ marginTop: 6, minHeight: 64 }}
-            />
-          </div>
+          <section key={c.chave} className="ficha-comp" aria-labelledby={`t-${inscricaoId}-${c.chave}`}>
+            <header className="ficha-comp-titulo">
+              <b id={`t-${inscricaoId}-${c.chave}`}>
+                {i + 1}. {c.rotulo}
+              </b>
+              <span className="ficha-peso">
+                nota de 0 a {c.peso}
+                {ok ? (
+                  <>
+                    {" · "}
+                    <span className="pill pill-ok">
+                      {n} — {faixa(n, c.peso)}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+            </header>
+            <div className="ficha-comp-corpo">
+              <div>
+                <label htmlFor={`n-${inscricaoId}-${c.chave}`}>Nota</label>
+                <input
+                  id={`n-${inscricaoId}-${c.chave}`}
+                  type="number"
+                  min={0}
+                  max={c.peso}
+                  step={1}
+                  inputMode="numeric"
+                  value={notas[c.chave]}
+                  onChange={(e) => setNotas({ ...notas, [c.chave]: e.target.value })}
+                  placeholder={`0 a ${c.peso}`}
+                />
+              </div>
+              <div>
+                <label htmlFor={`j-${inscricaoId}-${c.chave}`}>Justificativa</label>
+                <textarea
+                  id={`j-${inscricaoId}-${c.chave}`}
+                  value={justs[c.chave]}
+                  onChange={(e) => setJusts({ ...justs, [c.chave]: e.target.value })}
+                  placeholder="Justifique"
+                />
+              </div>
+            </div>
+          </section>
         );
       })}
-      <p className="hint">
-        Total da minha ficha: <b>{somaTotal}</b> de {TOTAL_ENTREVISTA}
-      </p>
+      <div className="ficha-total">
+        <span>Total da minha ficha</span>
+        <span>
+          <b>{somaTotal}</b> de {TOTAL_ENTREVISTA}
+        </span>
+      </div>
       {erro ? (
         <div className="alert alert-err">
           <p>{erro}</p>
