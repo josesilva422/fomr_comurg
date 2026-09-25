@@ -93,8 +93,10 @@ do $$
 declare d text; ancora text;
 begin
   d := pg_get_functiondef('publico.verificar_inscricao()'::regprocedure);
-  ancora := '  -- título/curso sem certificado: AVISO';
-  if position(ancora in d) = 0 then raise exception 'verificar_inscricao: trecho dos avisos de título não encontrado'; end if;
+  -- âncora em código (não em comentário: em produção a função foi gravada sem comentários)
+  ancora := '  for r in
+    select t.denominacao from publico.titulos_declarados t';
+  if position(ancora in d) = 0 then raise exception 'verificar_inscricao: laço dos títulos sem documento não encontrado'; end if;
   d := replace(d, ancora,
 '  -- pós exigida (3.1 d; 3.2 a 3.4; 5.2.1): Sênior sempre; Pleno quando não há equivalência comprovada
   if i.nivel = ''senior'' and interno.pos_requisito_titulo_id(i.id) is null then

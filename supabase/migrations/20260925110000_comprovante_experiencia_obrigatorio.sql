@@ -84,7 +84,7 @@ begin
 
   ancora := '  -- 4 · experiência (o documento por vínculo não é exigido para enviar nem para pontuar — a pontuação de
   -- experiência é por tempo total comprovado, não por item; ver interno.calcular_avaliacao)';
-  if position(ancora in d) = 0 then raise exception 'verificar_inscricao: comentário da etapa 4 não encontrado'; end if;
+  -- o comentário pode não existir (em produção a função foi gravada sem comentários): troca só se houver
   d := replace(d, ancora,
 '  -- 4 · experiência: cada vínculo precisa do comprovante do item 5.3 (decisão do responsável, 25/09/2026 — ver
   -- interno.vinculo_comprovado); vínculo sem comprovante também não conta no cálculo (interno.meses_experiencia_uniao)');
