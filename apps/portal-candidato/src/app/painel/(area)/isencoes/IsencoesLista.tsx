@@ -14,7 +14,7 @@ interface LinhaIsencao {
   hipotese_isencao: "cadunico" | "doador_sangue" | "doador_medula" | null;
   nis_isencao: string | null;
   qtd_documentos: number;
-  decisao: "deferida" | "indeferida" | "desconsiderada" | null;
+  decisao: Decisao | null;
   motivo: string | null;
   decidido_em: string | null;
   comprovante_enviado: boolean;
@@ -43,7 +43,24 @@ const CONFERIR: Record<string, string> = {
     "Mínimo de 1 doação nos 365 dias anteriores à abertura das inscrições (28/09/2026): comprovante da unidade coletora, assinado, e inscrição no REDOME.",
 };
 
-const ROTULO_DECISAO = { deferida: "Deferida", indeferida: "Indeferida", desconsiderada: "Inscrição desconsiderada" } as const;
+type Decisao = "deferida" | "indeferida" | "desconsiderada" | "pagamento_confirmado" | "pagamento_recusado";
+const ROTULO_DECISAO: Record<Decisao, string> = {
+  deferida: "Deferida",
+  indeferida: "Indeferida",
+  desconsiderada: "Inscrição desconsiderada",
+  pagamento_confirmado: "Indeferida · pagamento confirmado",
+  pagamento_recusado: "Indeferida · comprovante recusado",
+};
+const PILL_DECISAO: Record<Decisao, string> = {
+  deferida: "pill-ok",
+  indeferida: "pill-err",
+  desconsiderada: "pill-err",
+  pagamento_confirmado: "pill-ok",
+  pagamento_recusado: "pill-err",
+};
+/** Isenção indeferida (ou comprovante recusado) com comprovante novo esperando a Comissão conferir. */
+const aConferir = (l: LinhaIsencao) =>
+  l.status === "aguardando_isencao" && (l.decisao === "indeferida" || l.decisao === "pagamento_recusado") && l.comprovante_enviado;
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 const fmtData = (v: string | null) => (v ? new Date(v).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—");
 
@@ -71,11 +88,12 @@ export function IsencoesLista() {
   if (!linhas.length) return <div className="empty">Nenhum pedido de isenção enviado até o momento.</div>;
 
   const pendentes = linhas.filter((l) => !l.decisao).length;
+  const conferir = linhas.filter(aConferir).length;
 
   return (
     <div>
       <p className="hint" style={{ marginTop: 0 }}>
-        {linhas.length} pedido(s) · <b>{pendentes}</b> aguardando decisão.
+        {linhas.length} pedido(s) · <b>{pendentes}</b> aguardando decisão · <b>{conferir}</b> comprovante(s) de Pix a conferir.
       </p>
       <div className="tabela-wrap">
         <table className="tabela">
@@ -115,15 +133,21 @@ function LinhaPedido({ l, aberta, alternar, recarregar }: { l: LinhaIsencao; abe
         <td>{l.qtd_documentos}</td>
         <td>
           {l.decisao ? (
-            <span className={`pill ${l.decisao === "deferida" ? "pill-ok" : "pill-err"}`}>{ROTULO_DECISAO[l.decisao]}</span>
+            <span className={`pill ${PILL_DECISAO[l.decisao]}`}>{ROTULO_DECISAO[l.decisao]}</span>
           ) : (
             <span className="pill pill-muted">Aguardando</span>
           )}
-          {l.decisao === "indeferida" ? <div className="hint">{l.comprovante_enviado ? "Comprovante de Pix enviado" : "Sem comprovante de Pix"}</div> : null}
+          {aConferir(l) ? (
+            <div className="hint">
+              <b>Comprovante de Pix a conferir</b>
+            </div>
+          ) : l.decisao === "indeferida" || l.decisao === "pagamento_recusado" ? (
+            <div className="hint">Sem comprovante de Pix novo</div>
+          ) : null}
         </td>
         <td style={{ textAlign: "right" }}>
           <button type="button" className="btn btn-sm" onClick={alternar}>
-            {aberta ? "Fechar" : l.decisao ? "Ver" : "Analisar"}
+            {aberta ? "Fechar" : !l.decisao ? "Analisar" : aConferir(l) ? "Conferir Pix" : "Ver"}
           </button>
         </td>
       </tr>
@@ -152,7 +176,7 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
       .rpc("documentos_da_inscricao", { p_inscricao_id: l.inscricao_id })
       .then(({ data, error }: { data: DocIsencao[] | null; error: { message: string } | null }) => {
         if (error) setErro(error.message);
-        else setDocs((data ?? []).filter((d) => d.tipo === "requerimento_isencao"));
+        else setDocs((data ?? []).filter((d) => d.tipo === "requerimento_isencao" || d.tipo === "comprovante_pix"));
       });
   }, [l.inscricao_id]);
 
@@ -161,6 +185,19 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
     const { data, error } = await createClient().storage.from("documentos").createSignedUrl(d.storage_path, 300);
     if (error) return setErro(error.message);
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function decidirPagamento(confirmar: boolean) {
+    setErro("");
+    if (motivo.trim().length < 10) return setErro("Informe o motivo da decisão (mínimo de 10 caracteres).");
+    setSalvando(true);
+    const { error } = await createClient()
+      .schema("painel")
+      .rpc("decidir_pagamento_isencao", { p_inscricao_id: l.inscricao_id, p_confirmar: confirmar, p_motivo: motivo });
+    setSalvando(false);
+    if (error) return setErro(error.message);
+    setMotivo("");
+    aoDecidir();
   }
 
   async function decidir(decisao: "deferida" | "indeferida" | "desconsiderada") {
@@ -198,6 +235,7 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
           <ul style={{ margin: "6px 0", paddingLeft: 18 }}>
             {docs.map((d) => (
               <li key={d.id}>
+                {d.tipo === "comprovante_pix" ? <b>Comprovante do Pix: </b> : null}
                 {d.nome_original}{" "}
                 <button type="button" className="btn btn-sm btn-ghost" onClick={() => ver(d)}>
                   Abrir
@@ -214,38 +252,87 @@ function PainelDecisao({ l, aoDecidir }: { l: LinhaIsencao; aoDecidir: () => voi
       {l.decisao ? (
         <div className="alert" style={{ margin: 0 }}>
           <p>
-            <b>Última decisão: {l.decisao === "deferida" ? "deferida" : "indeferida"}</b> em {fmtData(l.decidido_em)}.
+            <b>Última decisão: {ROTULO_DECISAO[l.decisao].toLowerCase()}</b> em {fmtData(l.decidido_em)}.
           </p>
           <p>Motivo: {l.motivo}</p>
         </div>
       ) : null}
 
-      <div className="field">
-        <label htmlFor={`motivo-${l.inscricao_id}`}>{l.decisao ? "Nova decisão (ex.: após recurso) — motivo" : "Motivo da decisão"} (obrigatório)</label>
-        <textarea id={`motivo-${l.inscricao_id}`} rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Fundamente a decisão com base no decreto e nos documentos." />
-      </div>
-      {erro ? (
-        <p className="err" role="alert">
-          {erro}
-        </p>
-      ) : null}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" className="btn btn-primary" disabled={salvando} onClick={() => decidir("deferida")}>
-          Deferir isenção
-        </button>
-        <button type="button" className="btn" disabled={salvando} onClick={() => decidir("indeferida")}>
-          Indeferir isenção
-        </button>
-        {l.decisao === "indeferida" && prazoTerminou ? (
-          <button type="button" className="btn" disabled={salvando} onClick={() => decidir("desconsiderada")}>
-            Desconsiderar inscrição (sem pagamento no prazo)
-          </button>
-        ) : null}
-      </div>
-      <p className="hint" style={{ margin: 0 }}>
-        Indeferida: o candidato pode pagar a taxa até {fmtData(l.prazo_pagamento)} (item 4.10.2) e anexar o comprovante no portal. Depois desse prazo, sem
-        pagamento válido, a Comissão pode desconsiderar a inscrição, com motivo. Toda decisão fica registrada na auditoria e o candidato a vê no portal.
-      </p>
+      {l.decisao === "pagamento_confirmado" ? (
+        <div className="alert alert-ok" style={{ margin: 0 }}>
+          <p>
+            Pagamento confirmado: a inscrição segue o fluxo normal, como a de quem pagou a taxa na inscrição. Não há mais decisão de isenção a
+            tomar.
+          </p>
+        </div>
+      ) : aConferir(l) ? (
+        <>
+          <div className="alert alert-warn" style={{ margin: 0 }}>
+            <p>
+              <b>Conferência do comprovante do Pix</b> (isenção indeferida). Confira: nome e CPF do pagador iguais aos do candidato (item 4.9.1 e
+              4.9.4); valor de R$ 100,00; data e hora até {fmtData(l.prazo_pagamento)} (item 4.10.2); chave Pix da COMURG; código E2E. Confirmado, a
+              inscrição segue o fluxo normal. Recusado, o candidato vê o motivo e pode enviar outro comprovante até o prazo.
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor={`motivo-${l.inscricao_id}`}>Motivo da decisão (obrigatório)</label>
+            <textarea
+              id={`motivo-${l.inscricao_id}`}
+              rows={3}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex.: Comprovante conferido — nome, CPF, valor, data e E2E conferem."
+            />
+          </div>
+          {erro ? (
+            <p className="err" role="alert">
+              {erro}
+            </p>
+          ) : null}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-primary" disabled={salvando} onClick={() => decidirPagamento(true)}>
+              Confirmar pagamento (seguir fluxo normal)
+            </button>
+            <button type="button" className="btn" disabled={salvando} onClick={() => decidirPagamento(false)}>
+              Recusar comprovante
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="field">
+            <label htmlFor={`motivo-${l.inscricao_id}`}>{l.decisao ? "Nova decisão (ex.: após recurso) — motivo" : "Motivo da decisão"} (obrigatório)</label>
+            <textarea id={`motivo-${l.inscricao_id}`} rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Fundamente a decisão com base no decreto e nos documentos." />
+          </div>
+          {erro ? (
+            <p className="err" role="alert">
+              {erro}
+            </p>
+          ) : null}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {l.decisao !== "desconsiderada" ? (
+              <>
+                <button type="button" className="btn btn-primary" disabled={salvando} onClick={() => decidir("deferida")}>
+                  Deferir isenção
+                </button>
+                <button type="button" className="btn" disabled={salvando} onClick={() => decidir("indeferida")}>
+                  Indeferir isenção
+                </button>
+              </>
+            ) : null}
+            {(l.decisao === "indeferida" || l.decisao === "pagamento_recusado") && prazoTerminou ? (
+              <button type="button" className="btn" disabled={salvando} onClick={() => decidir("desconsiderada")}>
+                Desconsiderar inscrição (sem pagamento no prazo)
+              </button>
+            ) : null}
+          </div>
+          <p className="hint" style={{ margin: 0 }}>
+            Indeferida: o candidato pode pagar a taxa até {fmtData(l.prazo_pagamento)} (item 4.10.2) e anexar o comprovante no portal; quando ele
+            enviar, aparece aqui a conferência do Pix. Depois desse prazo, sem pagamento válido, a Comissão pode desconsiderar a inscrição, com motivo.
+            Toda decisão fica registrada na auditoria e o candidato a vê no portal.
+          </p>
+        </>
+      )}
     </div>
   );
 }

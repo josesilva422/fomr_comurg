@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Documento } from "@/lib/tipos-inscricao";
 
 export interface MinhaIsencao {
-  decisao: "deferida" | "indeferida" | "desconsiderada";
+  decisao: "deferida" | "indeferida" | "desconsiderada" | "pagamento_confirmado" | "pagamento_recusado";
   motivo: string;
   decidido_em: string;
   pode_pagar: boolean;
@@ -68,11 +68,23 @@ export function useMinhaIsencao(ativo: boolean) {
   return { res, dados, docs, carregar };
 }
 
+/** Há comprovante enviado DEPOIS da última decisão (ex.: novo comprovante após uma recusa)? */
+function comprovanteNovo(res: MinhaIsencao, docs: Documento[]): boolean {
+  return docs.some((d) => new Date(d.enviado_em).getTime() > new Date(res.decidido_em).getTime());
+}
+
 /** Texto da "Situação" da inscrição enquanto ela está no fluxo da isenção. */
 export function situacaoIsencao(res: MinhaIsencao | null, docs: Documento[]): string {
   if (!res) return "aguardando análise do pedido de isenção";
   if (res.decisao === "deferida") return "isenção deferida — aguardando homologação";
   if (res.decisao === "desconsiderada") return "inscrição desconsiderada (taxa não paga no prazo)";
+  if (res.decisao === "pagamento_confirmado") return "pagamento confirmado — aguardando homologação";
+  if (res.decisao === "pagamento_recusado") {
+    if (comprovanteNovo(res, docs)) return "novo comprovante do Pix enviado, aguardando conferência da Comissão";
+    return res.pode_pagar
+      ? `comprovante do Pix recusado — envie um novo até ${fmtCurto(res.prazo_pagamento)}`
+      : "comprovante do Pix recusado — prazo de pagamento encerrado";
+  }
   if (docs.length > 0) return "isenção indeferida — comprovante do Pix enviado, aguardando conferência da Comissão";
   if (res.pode_pagar) return `isenção indeferida — pagamento da taxa pendente (até ${fmtCurto(res.prazo_pagamento)})`;
   return "isenção indeferida — prazo de pagamento encerrado";
@@ -120,11 +132,35 @@ export function ResultadoIsencao({ inscricaoId, isencao }: { inscricaoId: string
     );
   }
 
+  if (res.decisao === "pagamento_confirmado") {
+    return (
+      <section className="card" style={{ marginTop: 16 }}>
+        <h3>Pagamento confirmado</h3>
+        <p>A Comissão conferiu o seu comprovante do Pix em {fmt(res.decidido_em)}. A inscrição segue normalmente.</p>
+      </section>
+    );
+  }
+
+  const recusado = res.decisao === "pagamento_recusado";
+  // Depois de uma recusa, só conta como enviado o comprovante mandado DEPOIS dela.
+  const enviados = recusado ? docs.filter((d) => new Date(d.enviado_em).getTime() > new Date(res.decidido_em).getTime()) : docs;
+
   return (
     <section className="card" style={{ marginTop: 16 }}>
-      <h3>Isenção indeferida</h3>
-      <p>Seu pedido de isenção foi indeferido em {fmt(res.decidido_em)}.</p>
-      <p className="hint">Motivo registrado pela Comissão: {res.motivo}</p>
+      <h3>{recusado ? "Comprovante do Pix recusado" : "Isenção indeferida"}</h3>
+      {recusado ? (
+        <div className="alert alert-err">
+          <p>
+            A Comissão recusou o comprovante do Pix em {fmt(res.decidido_em)}. <b>Motivo:</b> {res.motivo}
+          </p>
+          <p>Remova o comprovante anterior (×) e envie um comprovante válido dentro do prazo.</p>
+        </div>
+      ) : (
+        <>
+          <p>Seu pedido de isenção foi indeferido em {fmt(res.decidido_em)}.</p>
+          <p className="hint">Motivo registrado pela Comissão: {res.motivo}</p>
+        </>
+      )}
 
       {res.pode_pagar ? (
         <>
@@ -159,19 +195,19 @@ export function ResultadoIsencao({ inscricaoId, isencao }: { inscricaoId: string
             aoMudar={carregar}
             botaoEnviar="Enviar comprovante"
           />
-          {docs.length > 0 ? (
+          {enviados.length > 0 ? (
             <div className="alert alert-ok" style={{ marginTop: 12 }}>
               <p>
-                <b>✓ Comprovante enviado em {fmt(docs[docs.length - 1].enviado_em)}.</b> Não é preciso fazer mais nada: a Comissão vai conferir o
+                <b>✓ Comprovante enviado em {fmt(enviados[enviados.length - 1].enviado_em)}.</b> Não é preciso fazer mais nada: a Comissão vai conferir o
                 pagamento. Se anexou o arquivo errado, remova-o (×) e envie o correto até o prazo.
               </p>
             </div>
           ) : null}
         </>
-      ) : docs.length > 0 ? (
+      ) : enviados.length > 0 ? (
         <div className="alert alert-ok">
           <p>
-            <b>✓ Comprovante enviado em {fmt(docs[docs.length - 1].enviado_em)}.</b> A Comissão vai conferir o pagamento.
+            <b>✓ Comprovante enviado em {fmt(enviados[enviados.length - 1].enviado_em)}.</b> A Comissão vai conferir o pagamento.
           </p>
         </div>
       ) : (
