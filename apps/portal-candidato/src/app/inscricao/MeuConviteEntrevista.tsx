@@ -39,7 +39,7 @@ export function MeuConviteEntrevista({ convite }: { convite: ConviteEntrevista |
   return (
     <section className="card" style={{ marginTop: 16 }}>
       <h3>Convocação para a entrevista técnica</h3>
-      <div className="alert alert-ok">
+      <div className="alert alert-ok" style={{ flexDirection: "column", gap: 0 }}>
         <p>
           <b>{convite.titulo}</b>
         </p>
