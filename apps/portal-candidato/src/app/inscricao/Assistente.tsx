@@ -14,7 +14,7 @@ import { PassoPagamento } from "./PassoPagamento";
 import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
 import { MeuFormulario } from "./MeuFormulario";
-import { MeuConviteEntrevista } from "./MeuConviteEntrevista";
+import { MeuConviteEntrevista, useMeuConvite } from "./MeuConviteEntrevista";
 import { ResultadoIsencao, situacaoIsencao, useMinhaIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
@@ -218,14 +218,20 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
   const isencao = useMinhaIsencao(noFluxoIsencao);
   const rejeitada = inscricao.status === "indeferida";
   const rejeicao = useRejeicao(rejeitada);
-  const situacao =
-    inscricao.status === "homologada"
-      ? "inscrição aprovada"
+  const verConvite = inscricao.status === "homologada" || inscricao.status === "submetida" || noFluxoIsencao;
+  const convite = useMeuConvite(verConvite);
+  // Convocado para a entrevista técnica: existe convite registrado pela Comissão (item 6.5.1). Tem prioridade sobre as demais.
+  const convocado = verConvite && convite !== null;
+  const situacao = convocado
+    ? "Convocado para entrevista técnica"
+    : inscricao.status === "homologada"
+      ? "Inscrição aprovada"
       : rejeitada
-        ? "inscrição rejeitada"
+        ? "Inscrição rejeitada"
         : noFluxoIsencao
           ? situacaoIsencao(isencao.res, isencao.docs)
-          : "recebida, aguardando homologação";
+          : "Recebida, aguardando homologação";
+  const tomSituacao = rejeitada ? "err" : convocado || inscricao.status === "homologada" ? "ok" : "neutro";
   const protocolo = `PSS-2026-${inscricao.id.slice(0, 8).toUpperCase()}`;
   const quando = inscricao.submetida_em
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(inscricao.submetida_em))
@@ -243,10 +249,10 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
         </p>
         <div className="protocolo">{protocolo}</div>
         {quando ? <p style={{ color: "var(--muted)", fontSize: 14 }}>Enviada em {quando}</p> : null}
-        <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>
-          Situação:{" "}
-          <b>{situacao}</b>
-        </p>
+        <div className={`situacao-destaque situacao-${tomSituacao}`} role="status">
+          <small>Situação da inscrição</small>
+          <strong>{situacao.charAt(0).toUpperCase() + situacao.slice(1)}</strong>
+        </div>
       </section>
       {rejeitada ? (
         <section className="card" style={{ marginTop: 16 }}>
@@ -263,7 +269,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
           </p>
         </section>
       ) : null}
-      {inscricao.status === "homologada" || inscricao.status === "submetida" || noFluxoIsencao ? <MeuConviteEntrevista /> : null}
+      {verConvite ? <MeuConviteEntrevista convite={convite} /> : null}
       {noFluxoIsencao ? <ResultadoIsencao inscricaoId={inscricao.id} isencao={isencao} /> : null}
       <MeuFormulario />
     </main>

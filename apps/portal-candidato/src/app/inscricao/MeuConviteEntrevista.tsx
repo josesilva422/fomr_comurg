@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { dataPorExtenso } from "@/lib/convite-entrevista";
 
-interface Convite {
+export interface ConviteEntrevista {
   titulo: string;
   data: string;
   horario: string;
@@ -13,18 +13,28 @@ interface Convite {
   enviado_em: string;
 }
 
-// Convite para a entrevista técnica enviado pela Comissão (item 6.5.1). Aparece só quando existe; o mesmo conteúdo vai
-// por e-mail. Um convite novo substitui o anterior.
-export function MeuConviteEntrevista() {
-  const [convite, setConvite] = useState<Convite | null>(null);
-
+/** Último convite do próprio candidato (publico.meu_convite_entrevista); `null` enquanto não houver convite. */
+export function useMeuConvite(ativo: boolean): ConviteEntrevista | null {
+  const [convite, setConvite] = useState<ConviteEntrevista | null>(null);
   useEffect(() => {
+    if (!ativo) return;
+    let vivo = true;
     createClient()
       .schema("publico")
       .rpc("meu_convite_entrevista")
-      .then(({ data }: { data: Convite[] | null }) => setConvite(data?.[0] ?? null));
-  }, []);
+      .then(({ data }: { data: ConviteEntrevista[] | null }) => {
+        if (vivo) setConvite(data?.[0] ?? null);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [ativo]);
+  return convite;
+}
 
+// Convite para a entrevista técnica enviado pela Comissão (item 6.5.1). Aparece só quando existe; o mesmo conteúdo vai
+// por e-mail. Um convite novo substitui o anterior.
+export function MeuConviteEntrevista({ convite }: { convite: ConviteEntrevista | null }) {
   if (!convite) return null;
   return (
     <section className="card" style={{ marginTop: 16 }}>
