@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { dataPorExtenso } from "@/lib/convite-entrevista";
 
 export interface PresencaRegistro {
   situacao: "realizada" | "nao_compareceu";
@@ -23,6 +24,7 @@ const MENSAGENS: Record<string, string> = {
   nao_convocado: "Só candidatos convocados para a entrevista têm presença registrada.",
   ja_tem_ficha: "Este candidato já tem ficha de avaliador; não é possível registrar ausência.",
   link_invalido: "O link da gravação precisa começar com http:// ou https://.",
+  motivo_obrigatorio: "Informe o motivo do não comparecimento (mínimo de 5 caracteres).",
   entrevista_finalizada: "O registro deste candidato já foi finalizado.",
   faltam_fichas: "A banca precisa ter lançado pelo menos 3 fichas (item 6.5.2) para finalizar.",
   sem_presenca: "Registre que o candidato compareceu antes de finalizar.",
@@ -36,6 +38,7 @@ type Situacao = "realizada" | "nao_compareceu";
 export function PresencaEntrevista({
   inscricaoId,
   nome,
+  convite,
   historico,
   finalizacao,
   nFichas,
@@ -43,6 +46,8 @@ export function PresencaEntrevista({
 }: {
   inscricaoId: string;
   nome: string;
+  /** Convite vigente (data e horário da entrevista agendada), usado na confirmação do não comparecimento. */
+  convite: { data: string; horario: string } | null;
   historico: PresencaRegistro[];
   finalizacao: Finalizacao | null;
   nFichas: number;
@@ -53,6 +58,7 @@ export function PresencaEntrevista({
   const [observacao, setObservacao] = useState("");
   const [link, setLink] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [etapa, setEtapa] = useState<"form" | "confirmar">("form");
   const [erro, setErro] = useState("");
   const [confirmandoFim, setConfirmandoFim] = useState(false);
   const [erroFim, setErroFim] = useState("");
@@ -65,7 +71,18 @@ export function PresencaEntrevista({
     setObservacao("");
     setLink("");
     setErro("");
+    setEtapa("form");
     ref.current?.showModal();
+  }
+
+  // "Compareceu" salva direto. "Não compareceu" exige o motivo e passa por uma segunda confirmação antes de salvar.
+  function continuar() {
+    setErro("");
+    if (alvo === "nao_compareceu") {
+      if (observacao.trim().length < 5) return setErro(MENSAGENS.motivo_obrigatorio);
+      return setEtapa("confirmar");
+    }
+    void salvar();
   }
 
   async function salvar() {
@@ -82,6 +99,7 @@ export function PresencaEntrevista({
     setSalvando(false);
     if (error) {
       const dica = (error as { hint?: string }).hint ?? "";
+      setEtapa("form");
       return setErro(MENSAGENS[dica] ?? error.message);
     }
     ref.current?.close();
@@ -102,7 +120,7 @@ export function PresencaEntrevista({
   }
 
   return (
-    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", flexDirection: "column", alignItems: "flex-end", textAlign: "right" }}>
       <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Presença</p>
 
       {atual ? (
@@ -127,20 +145,20 @@ export function PresencaEntrevista({
       )}
 
       {!finalizado ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-          <button type="button" className="btn btn-sm" onClick={() => abrir("realizada")}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 8 }}>
+          <button type="button" className="btn btn-sm btn-sucesso" onClick={() => abrir("realizada")}>
             Compareceu
           </button>
-          <button type="button" className="btn btn-sm" onClick={() => abrir("nao_compareceu")}>
+          <button type="button" className="btn btn-sm btn-perigo" onClick={() => abrir("nao_compareceu")}>
             Não compareceu
           </button>
         </div>
       ) : null}
 
       {podeFinalizar ? (
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
           {confirmandoFim ? (
-            <div className="alert alert-warn" style={{ flexDirection: "column", gap: 8, margin: 0 }}>
+            <div className="alert alert-warn" style={{ flexDirection: "column", gap: 8, margin: 0, textAlign: "left" }}>
               <p>
                 <b>Finalizar o registro de {nome}?</b> As informações ficam salvas, a situação do candidato passa a &quot;Avaliação técnica finalizada&quot; e não
                 será mais possível alterar a presença nem as fichas.
@@ -203,7 +221,7 @@ export function PresencaEntrevista({
         }}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <div className="modal-motor-caixa" style={{ width: "min(560px, 100%)" }}>
+        <div className="modal-motor-caixa" style={{ width: "min(560px, 100%)", textAlign: "left" }}>
           <header className="modal-motor-topo">
             <div>
               <h2 id={`pres-titulo-${inscricaoId}`}>{alvo === "nao_compareceu" ? "Candidato não compareceu" : "Candidato compareceu"}</h2>
@@ -216,49 +234,96 @@ export function PresencaEntrevista({
             </button>
           </header>
           <div className="modal-motor-corpo">
-            {alvo === "nao_compareceu" ? (
-              <div className="alert alert-warn" style={{ margin: "0 0 12px" }}>
-                <p>
-                  Ao salvar, o candidato é <b>eliminado pelo item 6.5.7</b> do edital e vê isso no portal. Se foi engano, corrija depois com um novo registro.
-                </p>
+            {etapa === "confirmar" ? (
+              <div style={{ display: "grid", gap: 14 }}>
+                <div className="alert alert-err" style={{ margin: 0, flexDirection: "column", gap: 0 }}>
+                  <p>
+                    Deseja confirmar o <b>não comparecimento</b> do candidato <b>{nome}</b> na entrevista técnica
+                    {convite ? (
+                      <>
+                        {" "}
+                        agendada para <b>{dataPorExtenso(convite.data)}</b>, às <b>{convite.horario}</b>
+                      </>
+                    ) : null}
+                    ?
+                  </p>
+                  <p>
+                    Motivo informado: <i>{observacao.trim()}</i>
+                  </p>
+                  <p>O candidato será eliminado pelo item 6.5.7 do edital e verá isso no portal.</p>
+                </div>
+                {erro ? (
+                  <p className="err" role="alert">
+                    {erro}
+                  </p>
+                ) : null}
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <button type="button" className="btn" disabled={salvando} onClick={() => setEtapa("form")}>
+                    Voltar
+                  </button>
+                  <button type="button" className="btn btn-perigo" disabled={salvando} onClick={() => void salvar()}>
+                    {salvando ? <span className="spin" aria-hidden /> : null} Sim, confirmar não comparecimento
+                  </button>
+                </div>
               </div>
-            ) : null}
-            <div className="field">
-              <label htmlFor={`pres-obs-${inscricaoId}`}>Observação</label>
-              <textarea
-                id={`pres-obs-${inscricaoId}`}
-                rows={3}
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                maxLength={500}
-                placeholder={alvo === "nao_compareceu" ? "Ex.: não entrou na sala em 15 minutos" : "Ex.: entrevista concluída sem intercorrências"}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor={`pres-link-${inscricaoId}`}>Link da gravação da reunião</label>
-              <input
-                id={`pres-link-${inscricaoId}`}
-                type="url"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="https://"
-                maxLength={500}
-              />
-              <p className="hint">Opcional. Gravação em áudio e vídeo, quando tecnicamente viável (item 6.5.6).</p>
-            </div>
-            {erro ? (
-              <p className="err" role="alert">
-                {erro}
-              </p>
-            ) : null}
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button type="button" className="btn" disabled={salvando} onClick={() => ref.current?.close()}>
-                Cancelar
-              </button>
-              <button type="button" className="btn btn-primary" disabled={salvando} onClick={() => void salvar()}>
-                {salvando ? <span className="spin" aria-hidden /> : null} Salvar
-              </button>
-            </div>
+            ) : (
+              <>
+                {alvo === "nao_compareceu" ? (
+                  <div className="alert alert-warn" style={{ margin: "0 0 12px" }}>
+                    <p>
+                      Ao salvar, o candidato é <b>eliminado pelo item 6.5.7</b> do edital e vê isso no portal. Você ainda confirma na próxima etapa.
+                    </p>
+                  </div>
+                ) : null}
+                <div className="field">
+                  <label htmlFor={`pres-obs-${inscricaoId}`}>
+                    {alvo === "nao_compareceu" ? (
+                      <>
+                        Motivo do não comparecimento{" "}
+                        <b className="req" aria-hidden="true">
+                          *
+                        </b>
+                      </>
+                    ) : (
+                      "Observação"
+                    )}
+                  </label>
+                  <textarea
+                    id={`pres-obs-${inscricaoId}`}
+                    rows={3}
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                    maxLength={500}
+                    placeholder={alvo === "nao_compareceu" ? "Ex.: não entrou na sala em 15 minutos" : "Ex.: entrevista concluída sem intercorrências"}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`pres-link-${inscricaoId}`}>Link da gravação da reunião</label>
+                  <input
+                    id={`pres-link-${inscricaoId}`}
+                    type="url"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    placeholder="https://"
+                    maxLength={500}
+                  />
+                  <p className="hint">Opcional. Gravação em áudio e vídeo, quando tecnicamente viável (item 6.5.6).</p>
+                </div>
+                {erro ? (
+                  <p className="err" role="alert">
+                    {erro}
+                  </p>
+                ) : null}
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <button type="button" className="btn" disabled={salvando} onClick={() => ref.current?.close()}>
+                    Cancelar
+                  </button>
+                  <button type="button" className={`btn ${alvo === "nao_compareceu" ? "btn-perigo" : "btn-sucesso"}`} disabled={salvando} onClick={continuar}>
+                    {salvando ? <span className="spin" aria-hidden /> : null} Salvar
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </dialog>

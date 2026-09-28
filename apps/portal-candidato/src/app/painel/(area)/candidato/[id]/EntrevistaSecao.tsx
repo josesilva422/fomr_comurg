@@ -171,14 +171,17 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
       ) : null}
 
       <ConvitesSecao inscricaoId={inscricaoId} nome={nome} grupo={grupo} nivel={nivel}>
-        <PresencaEntrevista
-          inscricaoId={inscricaoId}
-          nome={nome}
-          historico={presencas}
-          finalizacao={finalizacao}
-          nFichas={dados.n_fichas}
-          aoMudar={() => setTick((t) => t + 1)}
-        />
+        {(vigente) => (
+          <PresencaEntrevista
+            inscricaoId={inscricaoId}
+            nome={nome}
+            convite={vigente ? { data: vigente.data, horario: vigente.horario } : null}
+            historico={presencas}
+            finalizacao={finalizacao}
+            nFichas={dados.n_fichas}
+            aoMudar={() => setTick((t) => t + 1)}
+          />
+        )}
       </ConvitesSecao>
 
       {finalizacao ? (
@@ -219,7 +222,7 @@ function ConvitesSecao({
   nome: string;
   grupo: Grupo;
   nivel: Nivel;
-  children?: React.ReactNode;
+  children?: (vigente: ConviteHistorico | null) => React.ReactNode;
 }) {
   const [convites, setConvites] = useState<ConviteHistorico[] | null>(null);
   const [erro, setErro] = useState("");
@@ -271,7 +274,7 @@ function ConvitesSecao({
           ))}
         </ul>
       ) : null}
-      {children}
+      {children ? children(convites?.[0] ?? null) : null}
     </div>
   );
 }

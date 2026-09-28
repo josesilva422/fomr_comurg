@@ -131,6 +131,8 @@ begin
   t := t || pg_temp.igual(b::text, 'true', 'candidato vê que a avaliação técnica foi finalizada');
 
   perform pg_temp.como(ustaff, 'staff-fin@teste.local');
+  t := t || pg_temp.falha(format('select painel.registrar_presenca_entrevista(%L, ''nao_compareceu'')', ib), 'não comparecimento sem motivo', 'motivo_obrigatorio');
+  t := t || pg_temp.falha(format('select painel.registrar_presenca_entrevista(%L, ''nao_compareceu'', ''abc'')', ib), 'motivo curto demais', 'motivo_obrigatorio');
   perform painel.registrar_presenca_entrevista(ib, 'nao_compareceu', 'Não entrou na sala.', 'https://teams.teste/gravacao/456');
   t := t || pg_temp.falha(format('select painel.finalizar_entrevista(%L)', ib), 'finalizar candidato que não compareceu', 'sem_presenca');
 
