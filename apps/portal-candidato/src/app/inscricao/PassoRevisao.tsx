@@ -166,7 +166,18 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
 
       <Secao titulo="Pagamento" onEditar={() => ctx.irPara(6)}>
         <Linha t="Taxa" d={i.solicitou_isencao ? "Isenção solicitada (aguardando análise)" : "R$ 100,00 via Pix"} />
-        <Linha t="Comprovante" d={docsDoTipo(ctx.documentos, "comprovante_pix").length ? "Anexado" : <span className="hint">não anexado</span>} />
+        <Linha
+          t="Comprovante"
+          d={
+            docsDoTipo(ctx.documentos, "comprovante_pix").length ? (
+              "Anexado"
+            ) : i.solicitou_isencao ? (
+              <span className="hint">Não obrigatório: você pediu isenção da taxa (se for indeferida, pague até 16/10/2026, às 23h59)</span>
+            ) : (
+              <span className="hint">não anexado</span>
+            )
+          }
+        />
         <Linha t="Documentos enviados no total" d={`${nDocs} arquivo(s)`} />
       </Secao>
 
