@@ -3,25 +3,30 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export type PresencaCandidato = "realizada" | "nao_compareceu" | null;
+export interface PresencaCandidato {
+  situacao: "realizada" | "nao_compareceu";
+  /** A Comissão finalizou o registro da entrevista técnica deste candidato. */
+  finalizada: boolean;
+}
 
-/** Situação do próprio candidato na entrevista técnica (publico.minha_presenca_entrevista); `null` enquanto não houver registro. */
-export function useMinhaPresenca(ativo: boolean): PresencaCandidato {
-  const [situacao, setSituacao] = useState<PresencaCandidato>(null);
+/** Situação do próprio candidato na entrevista técnica (publico.minha_presenca_entrevista); `null` enquanto não houver registro. Só a
+ *  situação: observação e link da gravação ficam apenas no painel. */
+export function useMinhaPresenca(ativo: boolean): PresencaCandidato | null {
+  const [presenca, setPresenca] = useState<PresencaCandidato | null>(null);
   useEffect(() => {
     if (!ativo) return;
     let vivo = true;
     createClient()
       .schema("publico")
       .rpc("minha_presenca_entrevista")
-      .then(({ data }: { data: { situacao: "realizada" | "nao_compareceu" }[] | null }) => {
-        if (vivo) setSituacao(data?.[0]?.situacao ?? null);
+      .then(({ data }: { data: PresencaCandidato[] | null }) => {
+        if (vivo) setPresenca(data?.[0] ? { situacao: data[0].situacao, finalizada: Boolean(data[0].finalizada) } : null);
       });
     return () => {
       vivo = false;
     };
   }, [ativo]);
-  return situacao;
+  return presenca;
 }
 
 /** Explicação para o candidato eliminado por ausência (item 6.5.7 do edital). */

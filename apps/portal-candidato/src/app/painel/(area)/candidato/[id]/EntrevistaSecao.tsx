@@ -6,7 +6,7 @@ import { BANCA_MINIMA, COMPETENCIAS, CORTE_ENTREVISTA, TOTAL_ENTREVISTA, fmtNota
 import type { Grupo, Nivel } from "@/lib/tipos";
 import { FichaAvaliador } from "../../entrevista/FichaAvaliador";
 import { ConviteEntrevista } from "../../entrevista/ConviteEntrevista";
-import { PresencaEntrevista, type PresencaRegistro } from "../../entrevista/PresencaEntrevista";
+import { PresencaEntrevista, type Finalizacao, type PresencaRegistro } from "../../entrevista/PresencaEntrevista";
 
 interface ConviteHistorico {
   id: string;
@@ -31,6 +31,7 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
   const [erro, setErro] = useState("");
   const [tick, setTick] = useState(0);
   const [presencas, setPresencas] = useState<PresencaRegistro[]>([]);
+  const [finalizacao, setFinalizacao] = useState<Finalizacao | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -54,6 +55,12 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
       .rpc("presenca_entrevista_do_candidato", { p_inscricao_id: inscricaoId })
       .then(({ data }: { data: PresencaRegistro[] | null }) => {
         if (vivo) setPresencas(data ?? []);
+      });
+    createClient()
+      .schema("painel")
+      .rpc("entrevista_finalizacao", { p_inscricao_id: inscricaoId })
+      .then(({ data }: { data: Finalizacao[] | null }) => {
+        if (vivo) setFinalizacao(data?.[0] ?? null);
       });
     return () => {
       vivo = false;
@@ -163,11 +170,24 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
         </p>
       ) : null}
 
-      <ConvitesSecao inscricaoId={inscricaoId} nome={nome} grupo={grupo} nivel={nivel} />
+      <ConvitesSecao inscricaoId={inscricaoId} nome={nome} grupo={grupo} nivel={nivel}>
+        <PresencaEntrevista
+          inscricaoId={inscricaoId}
+          nome={nome}
+          historico={presencas}
+          finalizacao={finalizacao}
+          nFichas={dados.n_fichas}
+          aoMudar={() => setTick((t) => t + 1)}
+        />
+      </ConvitesSecao>
 
-      <PresencaEntrevista inscricaoId={inscricaoId} historico={presencas} aoMudar={() => setTick((t) => t + 1)} />
-
-      {eliminadoPorAusencia ? (
+      {finalizacao ? (
+        <div className="alert alert-ok">
+          <p>
+            <b>Registro do candidato finalizado.</b> As fichas não podem mais ser alteradas.
+          </p>
+        </div>
+      ) : eliminadoPorAusencia ? (
         <div className="alert alert-err">
           <p>
             <b>Candidato eliminado por não comparecer à entrevista (item 6.5.7).</b> Não há ficha a lançar. Se o registro foi engano, corrija em &quot;Presença
@@ -188,7 +208,19 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
 }
 
 // Convite para a entrevista (item 6.5.1): botão + histórico dos convites enviados a este candidato.
-function ConvitesSecao({ inscricaoId, nome, grupo, nivel }: { inscricaoId: string; nome: string; grupo: Grupo; nivel: Nivel }) {
+function ConvitesSecao({
+  inscricaoId,
+  nome,
+  grupo,
+  nivel,
+  children,
+}: {
+  inscricaoId: string;
+  nome: string;
+  grupo: Grupo;
+  nivel: Nivel;
+  children?: React.ReactNode;
+}) {
   const [convites, setConvites] = useState<ConviteHistorico[] | null>(null);
   const [erro, setErro] = useState("");
   const [versao, setVersao] = useState(0);
@@ -239,6 +271,7 @@ function ConvitesSecao({ inscricaoId, nome, grupo, nivel }: { inscricaoId: strin
           ))}
         </ul>
       ) : null}
+      {children}
     </div>
   );
 }
