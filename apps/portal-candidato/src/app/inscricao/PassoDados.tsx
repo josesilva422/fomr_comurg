@@ -67,7 +67,7 @@ export function PassoDados({ ctx }: { ctx: Contexto }) {
   return (
     <form className="card step" onSubmit={salvar} noValidate>
       <header className="step-head">
-        <p className="eyebrow">Etapa 1 de 7</p>
+        <p className="eyebrow">Etapa 1 de 8</p>
         <h2>Dados pessoais</h2>
         <p className="lead">
           Preencha exatamente como está no seu documento de identidade. Esses dados serão conferidos com o comprovante de

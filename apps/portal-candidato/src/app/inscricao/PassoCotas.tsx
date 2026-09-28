@@ -92,7 +92,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
   return (
     <section className="card step">
       <header className="step-head">
-        <p className="eyebrow">Etapa 5 de 7</p>
+        <p className="eyebrow">Etapa 5 de 8</p>
         <h2>Cotas e isenção da taxa</h2>
         <p className="lead">Esta etapa é opcional. Marque apenas o que se aplica ao seu caso.</p>
       </header>

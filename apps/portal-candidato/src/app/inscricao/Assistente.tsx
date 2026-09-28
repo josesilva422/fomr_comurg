@@ -8,6 +8,7 @@ import type { CursoDeclarado, Documento, Pendencia, Titulo, Vinculo } from "@/li
 import type { Contexto, RascunhoVinculo } from "./contexto";
 import { PassoCotas } from "./PassoCotas";
 import { PassoDados } from "./PassoDados";
+import { PassoDeclaracoes } from "./PassoDeclaracoes";
 import { PassoExperiencia } from "./PassoExperiencia";
 import { PassoFormacao } from "./PassoFormacao";
 import { PassoPagamento } from "./PassoPagamento";
@@ -25,6 +26,7 @@ const PASSOS = [
   "Experiência",
   "Cotas e isenção",
   "Pagamento (Pix)",
+  "Declarações",
   "Revisão e envio",
 ] as const;
 
@@ -52,8 +54,8 @@ export function Assistente(props: DadosIniciais) {
 
   // primeira etapa com pendência BLOQUEANTE (avisos, como título sem documento, não desviam o candidato)
   const [passo, setPasso] = useState(() => {
-    const abertas = props.pendencias.filter((p) => p.bloqueia).map((p) => p.etapa).filter((n) => n >= 1 && n <= 6);
-    return abertas.length ? Math.min(...abertas) : 7;
+    const abertas = props.pendencias.filter((p) => p.bloqueia).map((p) => p.etapa).filter((n) => n >= 1 && n <= 7);
+    return abertas.length ? Math.min(...abertas) : 8;
   });
   const [visitados, setVisitados] = useState<number[]>([]);
 
@@ -110,7 +112,7 @@ export function Assistente(props: DadosIniciais) {
   function statusDoPasso(n: number): { classe: string; texto: string } {
     if (n === passo) return { classe: "is-current", texto: "Etapa atual" };
     if (n > 1 && !candidato) return { classe: "", texto: "Preencha a etapa 1" };
-    if (n === 7) return { classe: "", texto: "Conferir e enviar" };
+    if (n === 8) return { classe: "", texto: "Conferir e enviar" };
     if (n === 5 && !visitados.includes(5) && pendencias.every((p) => p.etapa !== 5)) return { classe: "", texto: "Opcional" };
     const doPasso = pendencias.filter((p) => p.etapa === n);
     const bloqueantes = doPasso.filter((p) => p.bloqueia).length;
@@ -130,11 +132,11 @@ export function Assistente(props: DadosIniciais) {
       <aside className="rail" aria-label="Etapas da inscrição">
         <div className="rail-compact">
           <div className="rail-compact-top">
-            <strong>Etapa {passo} de 7</strong>
+            <strong>Etapa {passo} de {PASSOS.length}</strong>
             <span>{PASSOS[passo - 1]}</span>
           </div>
           <div className="bar">
-            <i style={{ width: `${(passo / 7) * 100}%` }} />
+            <i style={{ width: `${(passo / PASSOS.length) * 100}%` }} />
           </div>
           <label className="rail-select">
             <span className="sr-only">Ir para outra etapa</span>
@@ -196,7 +198,8 @@ export function Assistente(props: DadosIniciais) {
         {passo === 4 && candidato && inscricao && <PassoExperiencia key="p4" ctx={ctx} />}
         {passo === 5 && candidato && inscricao && <PassoCotas key="p5" ctx={ctx} />}
         {passo === 6 && candidato && inscricao && <PassoPagamento key="p6" ctx={ctx} />}
-        {passo === 7 && candidato && inscricao && <PassoRevisao key="p7" ctx={ctx} />}
+        {passo === 7 && candidato && inscricao && <PassoDeclaracoes key="p7" ctx={ctx} />}
+        {passo === 8 && candidato && inscricao && <PassoRevisao key="p8" ctx={ctx} />}
         <div className="actions" style={{ position: "static", background: "transparent", border: 0, padding: 0, marginTop: 18 }}>
           <button
             type="button"

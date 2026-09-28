@@ -350,7 +350,7 @@ export function PassoExperiencia({ ctx }: { ctx: Contexto }) {
   return (
     <section className="card step">
       <header className="step-head">
-        <p className="eyebrow">Etapa 4 de 7</p>
+        <p className="eyebrow">Etapa 4 de 8</p>
         <h2>Experiência profissional</h2>
         <p className="lead">
           Cadastre cada vínculo com período e comprovação. O tempo é contado <b>em meses</b> e períodos simultâneos contam

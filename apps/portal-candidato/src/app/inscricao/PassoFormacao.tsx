@@ -89,7 +89,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
     return (
       <section className="card step">
         <header className="step-head">
-          <p className="eyebrow">Etapa 3 de 7</p>
+          <p className="eyebrow">Etapa 3 de 8</p>
           <h2>Formação</h2>
         </header>
         <div className="alert alert-warn">
@@ -198,7 +198,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
   return (
     <section className="card step">
       <header className="step-head">
-        <p className="eyebrow">Etapa 3 de 7</p>
+        <p className="eyebrow">Etapa 3 de 8</p>
         <h2>Formação</h2>
         <p className="lead">
           Informe sua graduação (requisito obrigatório) e, se tiver, pós-graduação, cursos e certificações que possam

@@ -9,14 +9,6 @@ import { docsDoTipo, type Contexto } from "./contexto";
 
 const fmtData = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
 
-const DECLARACOES = [
-  "Declaro atender aos requisitos gerais do edital: nacionalidade brasileira ou portuguesa com direitos políticos, quitação eleitoral e militar (quando aplicável), 18 anos completos até o encerramento das inscrições, ausência de impedimento legal e de acúmulo indevido de cargos.",
-  "Declaro que informei todos os meus vínculos profissionais, inclusive os simultâneos, e estou ciente de que omitir vínculo para pontuar indevidamente é falsidade.",
-  "Declaro que os documentos enviados são autênticos. Estou ciente de que falsidade documental, em qualquer fase, leva à eliminação imediata e à comunicação às autoridades.",
-  "Estou ciente de que não é permitido incluir título ou experiência depois do encerramento das inscrições e de que a taxa não é restituível.",
-  "Estou ciente de que meus dados pessoais e sensíveis serão tratados apenas para este processo seletivo, conforme a LGPD, e de que a decisão final sobre habilitação e pontuação é sempre de pessoas da Comissão Organizadora.",
-];
-
 function Linha({ t, d }: { t: string; d: React.ReactNode }) {
   return (
     <div className="kv">
@@ -44,7 +36,6 @@ function Secao({ titulo, onEditar, children }: { titulo: string; onEditar: () =>
 
 export function PassoRevisao({ ctx }: { ctx: Contexto }) {
   const { candidato: c, inscricao: i } = ctx;
-  const [marcadas, setMarcadas] = useState<boolean[]>(() => DECLARACOES.map(() => false));
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -58,15 +49,8 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
 
   async function enviar() {
     setErro("");
-    if (marcadas.some((m) => !m)) return setErro("Marque todas as declarações para enviar.");
     setEnviando(true);
     const supabase = createClient();
-    const versao = "edital-v2-2026-09-21";
-    const aceite = await supabase.rpc("aceitar_declaracoes", { p_versao: versao });
-    if (aceite.error) {
-      setEnviando(false);
-      return setErro(traduzirErro(aceite.error));
-    }
     const envio = await supabase.rpc("submeter_inscricao");
     if (envio.error) {
       setEnviando(false);
@@ -83,7 +67,7 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
   return (
     <section className="card step">
       <header className="step-head">
-        <p className="eyebrow">Etapa 7 de 7</p>
+        <p className="eyebrow">Etapa 8 de 8</p>
         <h2>Revisão e envio</h2>
         <p className="lead">
           Confira tudo com atenção. Ao clicar em <b>Enviar solicitação</b>, a inscrição é <b>definitiva</b>: não poderá
@@ -111,7 +95,7 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
         </div>
       ) : (
         <div className="alert alert-ok">
-          <p>Tudo certo. Falta apenas confirmar as declarações abaixo.</p>
+          <p>Tudo certo. Confira o resumo abaixo e envie a solicitação.</p>
         </div>
       )}
 
@@ -180,27 +164,6 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
         />
         <Linha t="Documentos enviados no total" d={`${nDocs} arquivo(s)`} />
       </Secao>
-
-      <h3 style={{ marginTop: 30 }}>Declarações</h3>
-      <p className="sub">Leia e marque cada item para enviar.</p>
-      {DECLARACOES.map((texto, idx) => (
-        <div className="decl" key={idx}>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={marcadas[idx]}
-              onChange={(e) =>
-                setMarcadas((m) => {
-                  const novo = [...m];
-                  novo[idx] = e.target.checked;
-                  return novo;
-                })
-              }
-            />
-            <span dangerouslySetInnerHTML={{ __html: idx === 4 ? `${texto} <em>(Texto provisório, a validar com o jurídico e o DPO.)</em>` : texto }} />
-          </label>
-        </div>
-      ))}
 
       {erro ? (
         <div className="alert alert-err" role="alert">

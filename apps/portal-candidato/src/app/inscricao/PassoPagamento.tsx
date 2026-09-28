@@ -55,7 +55,7 @@ export function PassoPagamento({ ctx }: { ctx: Contexto }) {
   return (
     <section className="card step">
       <header className="step-head">
-        <p className="eyebrow">Etapa 6 de 7</p>
+        <p className="eyebrow">Etapa 6 de 8</p>
         <h2>Pagamento da taxa (Pix)</h2>
         <p className="lead">
           A taxa de inscrição é de <b>{dados ? brl(dados.valor_centavos) : "R$ 100,00"}</b>, paga por Pix para a chave da

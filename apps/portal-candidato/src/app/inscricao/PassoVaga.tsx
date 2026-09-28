@@ -79,7 +79,7 @@ export function PassoVaga({ ctx }: { ctx: Contexto }) {
   return (
     <form className="card step" onSubmit={salvar} noValidate>
       <header className="step-head">
-        <p className="eyebrow">Etapa 2 de 7</p>
+        <p className="eyebrow">Etapa 2 de 8</p>
         <h2>Grupo e nível</h2>
         <p className="lead">
           Escolha o grupo e o nível da vaga. Cada candidato pode fazer <b>uma única inscrição</b>, em um grupo e um nível.
