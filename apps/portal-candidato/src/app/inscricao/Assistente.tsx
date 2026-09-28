@@ -15,6 +15,7 @@ import { PassoRevisao } from "./PassoRevisao";
 import { PassoVaga } from "./PassoVaga";
 import { MeuFormulario } from "./MeuFormulario";
 import { MeuConviteEntrevista, useMeuConvite } from "./MeuConviteEntrevista";
+import { EliminadoPorAusencia, useMinhaPresenca } from "./PresencaEntrevistaCandidato";
 import { ResultadoIsencao, situacaoIsencao, useMinhaIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
@@ -222,16 +223,22 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
   const convite = useMeuConvite(verConvite);
   // Convocado para a entrevista técnica: existe convite registrado pela Comissão (item 6.5.1). Tem prioridade sobre as demais.
   const convocado = verConvite && convite !== null;
-  const situacao = convocado
-    ? "Convocado para entrevista técnica"
-    : inscricao.status === "homologada"
-      ? "Inscrição aprovada"
-      : rejeitada
-        ? "Inscrição rejeitada"
-        : noFluxoIsencao
-          ? situacaoIsencao(isencao.res, isencao.docs)
-          : "Recebida, aguardando homologação";
-  const tomSituacao = rejeitada ? "err" : convocado || inscricao.status === "homologada" ? "ok" : "neutro";
+  const presenca = useMinhaPresenca(convocado);
+  const eliminadoAusencia = convocado && presenca === "nao_compareceu";
+  const situacao = eliminadoAusencia
+    ? "Não compareceu à entrevista técnica"
+    : convocado && presenca === "realizada"
+      ? "Em avaliação pela banca"
+      : convocado
+        ? "Convocado para entrevista técnica"
+        : inscricao.status === "homologada"
+          ? "Inscrição aprovada"
+          : rejeitada
+            ? "Inscrição rejeitada"
+            : noFluxoIsencao
+              ? situacaoIsencao(isencao.res, isencao.docs)
+              : "Recebida, aguardando homologação";
+  const tomSituacao = rejeitada || eliminadoAusencia ? "err" : convocado || inscricao.status === "homologada" ? "ok" : "neutro";
   const protocolo = `PSS-2026-${inscricao.id.slice(0, 8).toUpperCase()}`;
   const quando = inscricao.submetida_em
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(inscricao.submetida_em))
@@ -252,6 +259,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
         <div className={`situacao-destaque situacao-${tomSituacao}`} role="status">
           <small>Situação da inscrição</small>
           <strong>{situacao.charAt(0).toUpperCase() + situacao.slice(1)}</strong>
+          {eliminadoAusencia ? <span>Eliminado nos termos do item 6.5.7 do edital</span> : null}
         </div>
       </section>
       {rejeitada ? (
@@ -270,6 +278,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
         </section>
       ) : null}
       {verConvite ? <MeuConviteEntrevista convite={convite} /> : null}
+      {eliminadoAusencia ? <EliminadoPorAusencia /> : null}
       {noFluxoIsencao ? <ResultadoIsencao inscricaoId={inscricao.id} isencao={isencao} /> : null}
       <MeuFormulario />
     </main>

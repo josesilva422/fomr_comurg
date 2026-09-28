@@ -6,6 +6,7 @@ import { BANCA_MINIMA, COMPETENCIAS, CORTE_ENTREVISTA, TOTAL_ENTREVISTA, fmtNota
 import type { Grupo, Nivel } from "@/lib/tipos";
 import { FichaAvaliador } from "../../entrevista/FichaAvaliador";
 import { ConviteEntrevista } from "../../entrevista/ConviteEntrevista";
+import { PresencaEntrevista, type PresencaRegistro } from "../../entrevista/PresencaEntrevista";
 
 interface ConviteHistorico {
   id: string;
@@ -29,6 +30,7 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
   const [dados, setDados] = useState<EntrevistaDoCandidato | null>(null);
   const [erro, setErro] = useState("");
   const [tick, setTick] = useState(0);
+  const [presencas, setPresencas] = useState<PresencaRegistro[]>([]);
 
   useEffect(() => {
     let vivo = true;
@@ -39,6 +41,19 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
         if (!vivo) return;
         if (error) setErro(error.message);
         else setDados(data);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [inscricaoId, tick]);
+
+  useEffect(() => {
+    let vivo = true;
+    createClient()
+      .schema("painel")
+      .rpc("presenca_entrevista_do_candidato", { p_inscricao_id: inscricaoId })
+      .then(({ data }: { data: PresencaRegistro[] | null }) => {
+        if (vivo) setPresencas(data ?? []);
       });
     return () => {
       vivo = false;
@@ -67,6 +82,7 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
   }
 
   const faltam = Math.max(dados.minimo_fichas - dados.n_fichas, 0);
+  const eliminadoPorAusencia = presencas[0]?.situacao === "nao_compareceu";
 
   return (
     <div>
@@ -149,13 +165,24 @@ export function EntrevistaSecao({ inscricaoId, nome, grupo, nivel }: { inscricao
 
       <ConvitesSecao inscricaoId={inscricaoId} nome={nome} grupo={grupo} nivel={nivel} />
 
-      <FichaAvaliador
-        key={dados.minha_ficha?.updated_at ?? "nova"}
-        inscricaoId={inscricaoId}
-        minhaFicha={dados.minha_ficha}
-        limiteAtingido={dados.n_fichas >= dados.maximo_fichas}
-        aoSalvar={() => setTick((t) => t + 1)}
-      />
+      <PresencaEntrevista inscricaoId={inscricaoId} historico={presencas} aoMudar={() => setTick((t) => t + 1)} />
+
+      {eliminadoPorAusencia ? (
+        <div className="alert alert-err">
+          <p>
+            <b>Candidato eliminado por não comparecer à entrevista (item 6.5.7).</b> Não há ficha a lançar. Se o registro foi engano, corrija em &quot;Presença
+            na entrevista&quot;.
+          </p>
+        </div>
+      ) : (
+        <FichaAvaliador
+          key={dados.minha_ficha?.updated_at ?? "nova"}
+          inscricaoId={inscricaoId}
+          minhaFicha={dados.minha_ficha}
+          limiteAtingido={dados.n_fichas >= dados.maximo_fichas}
+          aoSalvar={() => setTick((t) => t + 1)}
+        />
+      )}
     </div>
   );
 }
