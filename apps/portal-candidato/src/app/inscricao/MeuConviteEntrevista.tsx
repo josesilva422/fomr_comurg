@@ -38,33 +38,40 @@ export function MeuConviteEntrevista({ convite }: { convite: ConviteEntrevista |
   if (!convite) return null;
   return (
     <section className="card" style={{ marginTop: 16 }}>
-      <h3>Convocação para a entrevista técnica</h3>
-      <div className="alert alert-ok" style={{ flexDirection: "column", gap: 0 }}>
-        <p>
-          <b>{convite.titulo}</b>
-        </p>
-        <p>
-          <b>Data e horário:</b> {dataPorExtenso(convite.data)}, às {convite.horario} (horário de Brasília)
-        </p>
-        <p style={{ wordBreak: "break-all" }}>
-          <b>Link da reunião:</b>{" "}
-          <a href={convite.link} target="_blank" rel="noopener noreferrer">
-            {convite.link}
-          </a>
-        </p>
-      </div>
-      {convite.orientacoes ? (
-        <>
-          <p style={{ marginBottom: 4 }}>
-            <b>Orientações da Comissão:</b>
+      <details className="recolher" open>
+        <summary>
+          <span className="recolher-triangulo" aria-hidden />
+          <h3>Convocação para a entrevista técnica</h3>
+        </summary>
+        <div className="recolher-corpo">
+          <div className="alert alert-ok" style={{ flexDirection: "column", gap: 0 }}>
+            <p>
+              <b>{convite.titulo}</b>
+            </p>
+            <p>
+              <b>Data e horário:</b> {dataPorExtenso(convite.data)}, às {convite.horario} (horário de Brasília)
+            </p>
+            <p style={{ wordBreak: "break-all" }}>
+              <b>Link da reunião:</b>{" "}
+              <a href={convite.link} target="_blank" rel="noopener noreferrer">
+                {convite.link}
+              </a>
+            </p>
+          </div>
+          {convite.orientacoes ? (
+            <>
+              <p style={{ marginBottom: 4 }}>
+                <b>Orientações da Comissão:</b>
+              </p>
+              <p style={{ marginTop: 0, whiteSpace: "pre-line" }}>{convite.orientacoes}</p>
+            </>
+          ) : null}
+          <p className="hint">
+            A entrevista é conduzida por banca de, no mínimo, 3 avaliadores (item 6.5.2) e registrada em ata, podendo ser gravada em áudio e vídeo (item
+            6.5.6). O não comparecimento elimina o candidato (item 6.5.7).
           </p>
-          <p style={{ marginTop: 0, whiteSpace: "pre-line" }}>{convite.orientacoes}</p>
-        </>
-      ) : null}
-      <p className="hint">
-        A entrevista é conduzida por banca de, no mínimo, 3 avaliadores (item 6.5.2) e registrada em ata, podendo ser gravada em áudio e vídeo (item
-        6.5.6). O não comparecimento elimina o candidato (item 6.5.7).
-      </p>
+        </div>
+      </details>
     </section>
   );
 }
