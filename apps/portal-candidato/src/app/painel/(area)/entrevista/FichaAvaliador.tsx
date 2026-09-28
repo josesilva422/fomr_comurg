@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { COMPETENCIAS, TOTAL_ENTREVISTA, faixa, type ChaveCompetencia, type FichaEntrevista } from "@/lib/entrevista";
 
@@ -41,6 +41,21 @@ export function FichaAvaliador({
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
+  const [perfil, setPerfil] = useState<{ nome: string; email: string; cpf_mascarado: string | null } | null>(null);
+  const travada = minhaFicha !== null;
+
+  useEffect(() => {
+    let vivo = true;
+    createClient()
+      .schema("painel")
+      .rpc("meu_perfil")
+      .then(({ data }: { data: { nome: string; email: string; cpf_mascarado: string | null }[] | null }) => {
+        if (vivo) setPerfil(data?.[0] ?? null);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   const somaTotal = COMPETENCIAS.reduce((s, c) => s + (Number(notas[c.chave]) || 0), 0);
 
@@ -60,12 +75,12 @@ export function FichaAvaliador({
     });
     setSalvando(false);
     if (error) return setErro(error.message);
-    setAviso(minhaFicha ? "Sua ficha foi corrigida." : "Sua ficha foi enviada.");
+    setAviso("Sua ficha foi enviada e está travada.");
     aoSalvar();
   }
 
-  async function remover() {
-    const motivo = window.prompt("Remover a sua ficha deste candidato? Informe o motivo (fica na auditoria):");
+  async function corrigir() {
+    const motivo = window.prompt("Para corrigir, a sua ficha atual será removida e você lança de novo. Informe o motivo da correção (fica na auditoria):");
     if (!motivo) return;
     const { error } = await createClient().schema("painel").rpc("remover_minha_ficha", { p_inscricao_id: inscricaoId, p_motivo: motivo });
     if (error) return setErro(error.message);
@@ -86,9 +101,15 @@ export function FichaAvaliador({
     <div className="card" style={{ marginTop: 12 }}>
       <div className="ficha-topo">
         <div>
-          <h4>{minhaFicha ? "Minha ficha (enviada — pode corrigir)" : "Minha ficha"}</h4>
+          <h4>{travada ? "Minha ficha (enviada e travada)" : "Minha ficha"}</h4>
+          {perfil ? (
+            <p style={{ margin: "2px 0 6px" }}>
+              <b>Avaliador:</b> {perfil.nome} · {perfil.email}
+              {perfil.cpf_mascarado ? ` · CPF ${perfil.cpf_mascarado}` : ""}
+            </p>
+          ) : null}
           <p className="hint">
-            Só você vê as suas notas. Os outros avaliadores e a Comissão veem apenas que a sua ficha foi enviada e, com pelo menos 3 fichas, a média.
+            Só você vê as suas notas. Os outros avaliadores e a Comissão veem apenas que a sua ficha foi enviada e, com pelo menos 3 fichas, a média. O seu nome vem do seu cadastro e a ficha fica registrada no seu login. Depois de enviada, a ficha fica travada; para corrigir, remova-a informando o motivo e lance de novo.
           </p>
         </div>
       </div>
@@ -124,6 +145,7 @@ export function FichaAvaliador({
                   step={1}
                   inputMode="numeric"
                   value={notas[c.chave]}
+                  readOnly={travada}
                   onChange={(e) => setNotas({ ...notas, [c.chave]: e.target.value })}
                   placeholder={`0 a ${c.peso}`}
                 />
@@ -133,6 +155,7 @@ export function FichaAvaliador({
                 <textarea
                   id={`j-${inscricaoId}-${c.chave}`}
                   value={justs[c.chave]}
+                  readOnly={travada}
                   onChange={(e) => setJusts({ ...justs, [c.chave]: e.target.value })}
                   placeholder="Justifique"
                 />
@@ -158,14 +181,15 @@ export function FichaAvaliador({
         </div>
       ) : null}
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <button type="button" className="btn btn-primary" disabled={salvando} onClick={salvar}>
-          {salvando ? "Salvando…" : minhaFicha ? "Salvar correção" : "Enviar minha ficha"}
-        </button>
-        {minhaFicha ? (
-          <button type="button" className="btn btn-ghost" disabled={salvando} onClick={remover}>
-            Remover minha ficha
+        {travada ? (
+          <button type="button" className="btn" disabled={salvando} onClick={corrigir}>
+            Corrigir minha ficha (remover e lançar de novo)
           </button>
-        ) : null}
+        ) : (
+          <button type="button" className="btn btn-primary" disabled={salvando} onClick={salvar}>
+            {salvando ? "Salvando…" : "Enviar minha ficha"}
+          </button>
+        )}
       </div>
     </div>
   );
