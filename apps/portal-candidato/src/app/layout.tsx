@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Inscrição · PSS COMURG 2026",
-  description: "Portal de inscrição do Processo Seletivo Simplificado COMURG 2026 (Analista de Governança).",
+  description: "Portal de inscrição do Processo Seletivo Simplificado COMURG 2026.",
   icons: { icon: "/logo-comurg.jpg" },
   robots: { index: true, follow: true },
 };

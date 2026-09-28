@@ -32,7 +32,7 @@ export default async function Inicio() {
       <Cabecalho periodo={situacao} email={logado ? String(claims?.claims?.email ?? "") : null} linkPainel={souComissao} />
       <main className="wrap" style={{ padding: "24px 16px 64px" }}>
         <section className="card hero">
-          <p className="eyebrow">Edital 2026 · Analista de Governança</p>
+          <p className="eyebrow">Edital 2026</p>
           <h1>Processo Seletivo Simplificado da COMURG</h1>
           <p className="lead">
             Faça sua inscrição pela internet, anexe os documentos e envie sua solicitação. Depois do envio, a inscrição é

@@ -19,7 +19,7 @@ export function Cabecalho({
           <img className="brand-logo" src="/logo-comurg.jpg" alt="Logotipo da COMURG" />
           <div>
             <strong>PSS COMURG 2026</strong>
-            <small>Processo Seletivo Simplificado · Analista de Governança</small>
+            <small>Processo Seletivo Simplificado</small>
           </div>
         </Link>
         <div className="header-right">
