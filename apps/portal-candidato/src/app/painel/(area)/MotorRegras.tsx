@@ -102,7 +102,7 @@ export function MotorRegrasBotao() {
             <ul>
               <li>Especialização/MBA (mínimo 360h): <b>2,0</b> por título, <b>sem limite de quantidade</b> (só o teto de 10,0).</li>
               <li>Mestrado: <b>3,0</b> (1 título). Doutorado: <b>4,0</b> (1 título).</li>
-              <li>Só conta o que foi concluído até 28/09/2026 (publicação do edital) e que tem <b>documento anexado</b>.</li>
+              <li>Só conta o que foi concluído até 05/10/2026 (publicação do edital) e que tem <b>documento anexado</b>.</li>
             </ul>
 
             <h4>Cursos e certificações — máx. 15,0 (teto rígido)</h4>
@@ -138,7 +138,7 @@ export function MotorRegrasBotao() {
               </tbody>
             </table>
             <p className="hint">
-              Também exige documento anexado e conclusão até 28/09/2026. Curso fora do catálogo do Grupo (item 2.1) ainda pontua, mas fica sinalizado para a
+              Também exige documento anexado e conclusão até 05/10/2026. Curso fora do catálogo do Grupo (item 2.1) ainda pontua, mas fica sinalizado para a
               Comissão confirmar a correlação.
             </p>
 

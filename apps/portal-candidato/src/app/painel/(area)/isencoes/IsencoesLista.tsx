@@ -38,9 +38,9 @@ const HIPOTESE: Record<string, string> = {
 const CONFERIR: Record<string, string> = {
   cadunico: "Renda familiar de até 3 salários mínimos ou per capita de até meio salário mínimo, inscrição no CadÚnico (NIS informado) e declaração formal.",
   doador_sangue:
-    "Mínimo de 3 doações nos 363 dias anteriores à abertura das inscrições (28/09/2026), com número e data em cada comprovante. Doação de plaquetas não vale.",
+    "Mínimo de 3 doações nos 363 dias anteriores à abertura das inscrições (05/10/2026), com número e data em cada comprovante. Doação de plaquetas não vale.",
   doador_medula:
-    "Mínimo de 1 doação nos 365 dias anteriores à abertura das inscrições (28/09/2026): comprovante da unidade coletora, assinado, e inscrição no REDOME.",
+    "Mínimo de 1 doação nos 365 dias anteriores à abertura das inscrições (05/10/2026): comprovante da unidade coletora, assinado, e inscrição no REDOME.",
 };
 
 type Decisao = "deferida" | "indeferida" | "desconsiderada" | "pagamento_confirmado" | "pagamento_recusado";

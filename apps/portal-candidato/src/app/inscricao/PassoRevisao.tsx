@@ -156,7 +156,7 @@ export function PassoRevisao({ ctx }: { ctx: Contexto }) {
             docsDoTipo(ctx.documentos, "comprovante_pix").length ? (
               "Anexado"
             ) : i.solicitou_isencao ? (
-              <span className="hint">Não obrigatório: você pediu isenção da taxa (se for indeferida, pague até 16/10/2026, às 23h59)</span>
+              <span className="hint">Não obrigatório: você pediu isenção da taxa (se for indeferida, pague até 23/10/2026, às 23h59)</span>
             ) : (
               <span className="hint">não anexado</span>
             )

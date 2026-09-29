@@ -160,7 +160,17 @@ begin
                           'aviso das faixas de experiência não diz mais "convenção assumida"');
   t := t || pg_temp.igual(((av.detalhamento -> 'avisos_metodologicos')::text like '%Anexo I, item 3, e item 6.4.2%')::text, 'true',
                           'aviso das faixas de experiência cita o edital');
-  t := t || pg_temp.igual(av.versao_motor, 'v7-2026-09-25', 'versão do motor');
+  t := t || pg_temp.igual(av.versao_motor, 'v8-2026-09-29', 'versão do motor');
+
+  -- Corte da publicação do edital (Anexo I, itens 1 e 2; minuta v9: publicação em 05/10/2026): curso concluído no dia da
+  -- publicação pontua; no dia seguinte, não.
+  ins := pg_temp.cand(14, '33344455508', 'A', 'junior', 'Administração', '2020-01-01', '2021-12-01');
+  perform pg_temp.curso(ins, 'SEI Avançado', 80, '2026-10-05');
+  perform pg_temp.curso(ins, 'Revit', 80, '2026-10-06');
+  av := interno.calcular_avaliacao(ins);
+  t := t || pg_temp.igual(av.pontos_cursos::text, '3.00', 'curso concluído em 05/10/2026 (publicação) pontua; o de 06/10/2026 não');
+  t := t || pg_temp.igual((select x ->> 'motivo_rejeicao' from jsonb_array_elements(av.detalhamento #> '{cursos,itens}') x where x ->> 'denominacao' = 'Revit'),
+                          'Concluído depois da publicação do edital (05/10/2026); não pontua.', 'motivo cita a publicação em 05/10/2026');
 
   ---------------------------------------------------------------- (7) comprovante de experiência (5.3)
   declare

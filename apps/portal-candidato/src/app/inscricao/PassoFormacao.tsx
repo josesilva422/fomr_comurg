@@ -116,7 +116,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
     if (!grau) e.grau = "Selecione uma opção.";
     if (instituicao.trim().length < 2) e.instituicao = "Informe a instituição de ensino.";
     if (!colacao) e.colacao = "Informe a data da colação de grau.";
-    else if (colacao > "2026-10-13") e.colacao = "A colação precisa ter ocorrido até 13/10/2026 (encerramento das inscrições).";
+    else if (colacao > "2026-10-20") e.colacao = "A colação precisa ter ocorrido até 20/10/2026 (encerramento das inscrições).";
     if (!formato) e.formato = "Selecione uma opção.";
     setErros(e);
     if (Object.keys(e).length) return;
@@ -245,7 +245,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
           <input id="instituicao" value={instituicao} onChange={(e) => setInstituicao(e.target.value)} placeholder="Nome da instituição" />
         </Campo>
         <Campo id="colacao" rotulo="Data da colação de grau" obrigatorio erro={erros.colacao}>
-          <input id="colacao" type="date" value={colacao} max="2026-10-13" onChange={(e) => setColacao(e.target.value)} />
+          <input id="colacao" type="date" value={colacao} max="2026-10-20" onChange={(e) => setColacao(e.target.value)} />
         </Campo>
         <Campo id="formato" rotulo="Formato do diploma" obrigatorio erro={erros.formato}>
           <select id="formato" value={formato} onChange={(e) => setFormato(e.target.value as Formato | "")}>
@@ -338,7 +338,7 @@ export function PassoFormacao({ ctx }: { ctx: Contexto }) {
       <hr className="divider" />
       <h3>Pós-graduação, mestrado e doutorado</h3>
       <p className="sub">
-        Só pontuam títulos concluídos até a publicação do edital (28/09/2026), de instituição credenciada pelo MEC ou curso
+        Só pontuam títulos concluídos até a publicação do edital (05/10/2026), de instituição credenciada pelo MEC ou curso
         recomendado pela CAPES, e que <b>não</b> tenham sido usados para cumprir o requisito mínimo.
       </p>
       {req.modo !== "nao" ? (

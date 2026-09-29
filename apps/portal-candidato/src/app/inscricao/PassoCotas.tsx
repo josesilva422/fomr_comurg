@@ -9,7 +9,7 @@ import { docsDoTipo, type Contexto } from "./contexto";
 
 // Laudo: emitido em até 12 meses antes do encerramento das inscrições (item 10.5).
 const LAUDO_MIN = "2025-10-13";
-const LAUDO_MAX = "2026-10-13";
+const LAUDO_MAX = "2026-10-20";
 
 type Hipotese = "cadunico" | "doador_sangue" | "doador_medula";
 
@@ -25,14 +25,14 @@ const HIPOTESES: Record<Hipotese, { rotulo: string; requisito: string; documento
   doador_sangue: {
     rotulo: "Doador de sangue",
     requisito:
-      "no mínimo 3 doações de sangue nos 363 dias anteriores à abertura das inscrições (28/09/2026). Doação de plaquetas ou de outro componente do sangue não vale.",
+      "no mínimo 3 doações de sangue nos 363 dias anteriores à abertura das inscrições (05/10/2026). Doação de plaquetas ou de outro componente do sangue não vale.",
     documentoRotulo: "Comprovantes das doações de sangue",
     documentoDica:
       "Comprovantes emitidos por órgão oficial ou entidade credenciada pela União, Estado ou Município, com número e data de cada doação. Envie todos (pode enviar mais de um arquivo).",
   },
   doador_medula: {
     rotulo: "Doador de medula óssea",
-    requisito: "no mínimo 1 doação de medula óssea nos 365 dias anteriores à abertura das inscrições (28/09/2026).",
+    requisito: "no mínimo 1 doação de medula óssea nos 365 dias anteriores à abertura das inscrições (05/10/2026).",
     documentoRotulo: "Comprovante da doação de medula óssea e inscrição no REDOME",
     documentoDica:
       "Comprovante expedido pela unidade coletora, assinado pela autoridade competente, com qualificação civil, data e horário da coleta, e a cópia da inscrição no REDOME. Pode enviar mais de um arquivo.",
@@ -60,7 +60,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
     if (pcd) {
       if (!dataLaudo) e.dataLaudo = "Informe a data de emissão do laudo.";
       else if (dataLaudo < LAUDO_MIN || dataLaudo > LAUDO_MAX)
-        e.dataLaudo = "O laudo deve ter sido emitido a partir de 13/10/2025 (até 12 meses antes do encerramento).";
+        e.dataLaudo = "O laudo deve ter sido emitido a partir de 20/10/2025 (até 12 meses antes do encerramento).";
     }
     if (isencao && !hipotese) e.hipotese = "Escolha a hipótese de isenção.";
     if (isencao && hipotese === "cadunico" && !nis.trim()) e.nis = "Informe o NIS (Número de Identificação Social do CadÚnico).";
@@ -125,7 +125,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
               <input id="dataLaudo" type="date" value={dataLaudo} onChange={(e) => setDataLaudo(e.target.value)} />
               <p className="hint">
                 O laudo deve ter sido emitido em até 12 meses antes do encerramento das inscrições, ou seja, a partir de
-                13/10/2025.
+                20/10/2025.
               </p>
               {erros.dataLaudo ? (
                 <p className="err" role="alert">
@@ -173,7 +173,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
           <span className="track" />
           <span>
             <strong>Solicito isenção da taxa de inscrição</strong>
-            <small>Pedido feito aqui no portal, no ato da inscrição, de 28/09 a 06/10/2026, nas hipóteses do decreto municipal (itens 4.10 e 4.10.1 do edital).</small>
+            <small>Pedido feito aqui no portal, no ato da inscrição, de 05/10 a 14/10/2026, nas hipóteses do decreto municipal (itens 4.10 e 4.10.1 do edital).</small>
           </span>
         </label>
         {isencao ? (
@@ -237,7 +237,7 @@ export function PassoCotas({ ctx }: { ctx: Contexto }) {
             <div className="alert alert-warn" style={{ margin: 0 }}>
               <p>
                 Pedido com dados incompletos ou incorretos é <b>indeferido</b> (decreto, art. 4º, §5º). Os documentos anexados não são devolvidos. A decisão
-                sai até <b>08/10/2026</b>. Se o pedido for indeferido, você poderá pagar a taxa até <b>16/10/2026, às 23h59</b> (item 4.10.2 do edital); sem
+                sai até <b>16/10/2026</b>. Se o pedido for indeferido, você poderá pagar a taxa até <b>23/10/2026, às 23h59</b> (item 4.10.2 do edital); sem
                 o pagamento nesse prazo, a inscrição é indeferida.
               </p>
             </div>

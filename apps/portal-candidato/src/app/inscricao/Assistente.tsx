@@ -284,7 +284,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
           </div>
           <p className="hint">
             Cabe recurso contra o indeferimento da inscrição (item 9.1, alínea b do edital), no prazo de 3 dias úteis contados do dia útil seguinte à
-            publicação do resultado (Anexo IV: 21, 22 e 23/10/2026). O recurso é enviado exclusivamente pelo e-mail pss2026comurg@comurg.com.br, com o
+            publicação do resultado (Anexo IV: 29/10, 30/10 e 03/11/2026). O recurso é enviado exclusivamente pelo e-mail pss2026comurg@comurg.com.br, com o
             formulário do Anexo VI preenchido e assinado, e &quot;RECURSO&quot;, a etapa, o seu nome e o Grupo/Nível no assunto (item 9.2).
           </p>
         </section>

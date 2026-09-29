@@ -163,11 +163,11 @@ begin
   perform pg_temp.admin();
   perform pg_temp.como(ustaff, 'staff@teste.local');
   select count(*) into n from painel.listar_cronograma();
-  t := t || pg_temp.igual(n::text, '24', 'cronograma tem os 24 itens do Anexo IV do edital publicado (28/09/2026)');
+  t := t || pg_temp.igual(n::text, '24', 'cronograma tem os 24 itens do Anexo IV (minuta v9, publicação em 05/10/2026)');
   select data_inicio::text || '..' || data_fim::text into p from painel.listar_cronograma() where ordem = 18;
-  t := t || pg_temp.igual(p, '2026-11-12..2026-11-23', 'item 18 (entrevistas técnicas): 12 a 23/11/2026');
+  t := t || pg_temp.igual(p, '2026-11-19..2026-11-30', 'item 18 (entrevistas técnicas): 19/11 a 30/11/2026');
   select data_fim::text into p from painel.listar_cronograma() where ordem = 24;
-  t := t || pg_temp.igual(p, '2026-12-04', 'item 24 (homologação do resultado final): até 04/12/2026');
+  t := t || pg_temp.igual(p, '2026-12-11', 'item 24 (homologação do resultado final): até 11/12/2026');
 
   ---------------------------------------------------------------- resultado (a exceção desfaz TUDO)
   select count(*), count(x) into v_total, nf from unnest(t) x;

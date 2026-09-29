@@ -10,8 +10,8 @@ import type { CursoDeclarado, TipoCurso, TipoDocumento, TipoTitulo, Titulo } fro
 import { traduzirErro } from "@/lib/validacao";
 import type { Contexto, RascunhoCurso, RascunhoTitulo } from "./contexto";
 
-const DATA_PUBLICACAO = "2026-09-28";
-const DATA_ENCERRAMENTO = "2026-10-13";
+const DATA_PUBLICACAO = "2026-10-05";
+const DATA_ENCERRAMENTO = "2026-10-20";
 
 const DOC_TITULO: Record<TipoTitulo, TipoDocumento> = {
   especializacao: "diploma_pos",
@@ -66,7 +66,7 @@ export function CartaoTitulo({
   const avisos: string[] = [];
   if (tipo === "especializacao" && Number(carga) > 0 && Number(carga) < 360)
     avisos.push("Especialização com menos de 360 horas não é aceita nem pontua.");
-  if (data && data > DATA_PUBLICACAO) avisos.push("Concluído depois de 28/09/2026 (publicação do edital): não pontua na análise curricular.");
+  if (data && data > DATA_PUBLICACAO) avisos.push("Concluído depois de 05/10/2026 (publicação do edital): não pontua na análise curricular.");
 
   async function salvar(): Promise<boolean> {
     setErroGeral("");
@@ -237,7 +237,7 @@ export function CartaoCurso({
 
   const avisos: string[] = [];
   if (tipo === "curso" && Number(carga) > 0 && Number(carga) < 20) avisos.push("Cursos com menos de 20 horas não pontuam.");
-  if (data && data > DATA_PUBLICACAO) avisos.push("Concluído depois de 28/09/2026 (publicação do edital): não pontua.");
+  if (data && data > DATA_PUBLICACAO) avisos.push("Concluído depois de 05/10/2026 (publicação do edital): não pontua.");
 
   async function salvar(): Promise<boolean> {
     setErroGeral("");
