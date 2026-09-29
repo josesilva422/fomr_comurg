@@ -44,6 +44,7 @@ export default async function Inicio() {
   let situacao = "Inscrições: 05/10 a 20/10/2026";
   let estado: "antes" | "aberto" | "encerrado" = "aberto";
   let detalheEstado = "";
+  let aberturaTexto = "";
   if (periodo) {
     const ab = new Date(periodo.abertura);
     const enc = new Date(periodo.encerramento);
@@ -51,7 +52,8 @@ export default async function Inicio() {
     const agora = new Date(periodo.agora).getTime(); // horário do servidor (banco)
     if (agora < ab.getTime()) {
       estado = "antes";
-      detalheEstado = `Abrem em ${fmt.format(ab)}`;
+      aberturaTexto = fmt.format(ab);
+      detalheEstado = `Abrem em ${aberturaTexto}`;
     } else if (agora > enc.getTime()) {
       estado = "encerrado";
       detalheEstado = `Encerradas em ${fmt.format(enc)}`;
@@ -96,9 +98,16 @@ export default async function Inicio() {
             <p className="portal-status-periodo">{situacao.replace("Inscrições: ", "")}</p>
             {detalheEstado ? <p className="portal-status-detalhe">{detalheEstado}</p> : null}
             <div className="portal-status-acoes">
-              <Link href={logado ? "/inscricao" : "/entrar"} className="btn btn-primary btn-grande" aria-disabled={!aberto}>
-                {logado ? "Continuar minha inscrição" : "Iniciar minha inscrição"}
-              </Link>
+              {estado === "antes" ? (
+                // Antes da abertura não há o que preencher: o botão fica desativado e diz quando abre.
+                <button type="button" className="btn btn-primary btn-grande" disabled>
+                  Inscrições abrem em {aberturaTexto}
+                </button>
+              ) : (
+                <Link href={logado ? "/inscricao" : "/entrar"} className="btn btn-primary btn-grande" aria-disabled={!aberto}>
+                  {logado ? "Continuar minha inscrição" : "Iniciar minha inscrição"}
+                </Link>
+              )}
               {edital ? (
                 <a className="btn btn-grande" href={`/publicacoes/${edital.id}`} target="_blank" rel="noopener noreferrer">
                   Baixar o edital (PDF)
