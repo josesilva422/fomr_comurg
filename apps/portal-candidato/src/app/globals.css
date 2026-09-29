@@ -541,8 +541,6 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .portal-passos li::before{content:counter(passo);grid-row:span 2;width:32px;height:32px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:14px}
 .portal-passos b{font-size:15px}
 .portal-passos span{font-size:14px;color:var(--muted)}
-.portal-email{display:block;font-weight:800;font-size:15px;margin:6px 0 12px;overflow-wrap:anywhere}
-.portal-notas{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px;color:var(--muted)}
 .tabela-wrap table.portal-tabela-vagas th,.tabela-wrap table.portal-tabela-vagas td{text-align:center;vertical-align:middle}
 .tabela-wrap table.portal-tabela-vagas th:first-child,.tabela-wrap table.portal-tabela-vagas td:first-child{text-align:left}
 .tabela-wrap table.portal-tabela-vagas th:last-child,.tabela-wrap table.portal-tabela-vagas td:last-child{text-align:right}
@@ -585,3 +583,17 @@ table.tabela.tabela-estatica tbody tr{cursor:default}
   .portal-so-largo{display:none}
   .portal-bloco{padding:16px}
 }
+
+/* linha: vagas (coluna maior) + dúvidas e recursos */
+.portal-linha{display:grid;gap:24px;align-items:stretch}
+.portal-linha>*{min-width:0}
+@media(min-width:900px){.portal-linha{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}}
+.portal-contato{display:flex;flex-direction:column}
+.portal-contato-email{display:grid;gap:4px;background:var(--brand-soft);border:1px solid var(--ok-line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.portal-contato-email span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ok-text)}
+.portal-contato-email a{font-weight:800;font-size:15px;color:var(--text);overflow-wrap:normal}
+.portal-contato-itens{margin:0;display:grid;gap:12px}
+.portal-contato-itens>div{display:grid;gap:2px;padding-left:12px;border-left:3px solid var(--brand-soft)}
+.portal-contato-itens dt{font-size:14px;font-weight:800}
+.portal-contato-itens dd{margin:0;font-size:14px;color:var(--muted)}
+.tabela-wrap table.portal-tabela-vagas tfoot td{font-weight:800;background:var(--surface-2);border-top:1px solid var(--line)}

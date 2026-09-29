@@ -221,7 +221,7 @@ export default async function Inicio() {
             </section>
           </div>
 
-          {/* 4. Lateral: como se inscrever e contato */}
+          {/* 4. Lateral: como se inscrever */}
           <aside className="portal-coluna-lateral">
             <section className="portal-bloco" aria-labelledby="t-como">
               <header className="portal-bloco-topo">
@@ -242,65 +242,89 @@ export default async function Inicio() {
                 </li>
               </ol>
             </section>
-
-            <section className="portal-bloco" id="contato" aria-labelledby="t-contato">
-              <header className="portal-bloco-topo">
-                <h2 id="t-contato">Dúvidas e recursos</h2>
-              </header>
-              <p>Somente pelo e-mail oficial da Comissão Organizadora:</p>
-              <a className="portal-email" href={`mailto:${EMAIL_OFICIAL}`}>
-                {EMAIL_OFICIAL}
-              </a>
-              <ul className="portal-notas">
-                <li>Dúvidas respondidas em até 48 horas úteis (item 4.12).</li>
-                <li>Recursos com o formulário do Anexo VI, em até 3 dias úteis após a publicação do resultado (item 9.2).</li>
-                <li>Pedido de isenção da taxa só no portal, durante a inscrição (item 4.10).</li>
-              </ul>
-            </section>
           </aside>
         </div>
 
-        {/* 5. Vagas e remuneração */}
-        {vagas.length ? (
-          <section className="portal-bloco" id="vagas" aria-labelledby="t-vagas">
-            <header className="portal-bloco-topo">
-              <h2 id="t-vagas">Vagas e remuneração</h2>
-              <span className="portal-bloco-ref">Remuneração bruta mensal · item 2.1 do edital</span>
-            </header>
-            <div className="tabela-wrap">
-              <table className="tabela tabela-estatica portal-tabela-vagas">
-                <thead>
-                  <tr>
-                    <th>Nível</th>
-                    {(["A", "B", "C"] as const).map((g) => (
-                      <th key={g}>
-                        <span className="portal-so-largo">Grupo </span>
-                        {g}
-                        <small>{GRUPOS[g].descricao}</small>
-                      </th>
-                    ))}
-                    <th>Remuneração</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {niveis.map((n) => (
-                    <tr key={n}>
-                      <td>
-                        <b>{NIVEIS[n].nome}</b>
-                      </td>
+        {/* 5. Vagas e remuneração (coluna maior) + dúvidas e recursos */}
+        <div className="portal-linha">
+          {vagas.length ? (
+            <section className="portal-bloco" id="vagas" aria-labelledby="t-vagas">
+              <header className="portal-bloco-topo">
+                <h2 id="t-vagas">Vagas e remuneração</h2>
+                <span className="portal-bloco-ref">Remuneração bruta mensal · item 2.1 do edital</span>
+              </header>
+              <div className="tabela-wrap">
+                <table className="tabela tabela-estatica portal-tabela-vagas">
+                  <thead>
+                    <tr>
+                      <th>Nível</th>
                       {(["A", "B", "C"] as const).map((g) => (
-                        <td key={g}>{vagas.find((v) => v.nivel === n && v.grupo === g)?.quantidade ?? "—"}</td>
+                        <th key={g}>
+                          <span className="portal-so-largo">Grupo </span>
+                          {g}
+                          <small>{GRUPOS[g].descricao}</small>
+                        </th>
                       ))}
-                      <td>
-                        {moeda(Number(vagas.find((v) => v.nivel === n)?.remuneracao ?? 0))}
-                      </td>
+                      <th>Remuneração</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {niveis.map((n) => (
+                      <tr key={n}>
+                        <td>
+                          <b>{NIVEIS[n].nome}</b>
+                        </td>
+                        {(["A", "B", "C"] as const).map((g) => (
+                          <td key={g}>{vagas.find((v) => v.nivel === n && v.grupo === g)?.quantidade ?? "—"}</td>
+                        ))}
+                        <td>
+                          {moeda(Number(vagas.find((v) => v.nivel === n)?.remuneracao ?? 0))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td>Total</td>
+                      {(["A", "B", "C"] as const).map((g) => (
+                        <td key={g}>{vagas.filter((v) => v.grupo === g).reduce((t, v) => t + v.quantidade, 0)}</td>
+                      ))}
+                      <td>{totalVagas} vagas</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p className="portal-rodape-bloco">As vagas são fixas por Grupo dentro de cada nível (item 2.1 do edital).</p>
+            </section>
+          ) : null}
+
+          <section className="portal-bloco portal-contato" id="contato" aria-labelledby="t-contato">
+            <header className="portal-bloco-topo">
+              <h2 id="t-contato">Dúvidas e recursos</h2>
+            </header>
+            <div className="portal-contato-email">
+              <span>E-mail oficial da Comissão Organizadora</span>
+              <a href={`mailto:${EMAIL_OFICIAL}`}>
+                {EMAIL_OFICIAL.split("@")[0]}@<wbr />
+                {EMAIL_OFICIAL.split("@")[1]}
+              </a>
             </div>
+            <dl className="portal-contato-itens">
+              <div>
+                <dt>Dúvidas</dt>
+                <dd>Somente por esse e-mail. Resposta em até 48 horas úteis (item 4.12).</dd>
+              </div>
+              <div>
+                <dt>Recursos</dt>
+                <dd>Pelo mesmo e-mail, com o formulário do Anexo VI, em até 3 dias úteis após a publicação do resultado (item 9.2).</dd>
+              </div>
+              <div>
+                <dt>Isenção da taxa</dt>
+                <dd>Pedido só aqui no portal, durante a inscrição (item 4.10).</dd>
+              </div>
+            </dl>
           </section>
-        ) : null}
+        </div>
 
         {/* 6. Cronograma (recolhível) */}
         {etapas.length ? (
