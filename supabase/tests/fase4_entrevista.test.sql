@@ -182,8 +182,12 @@ begin
   t := t || pg_temp.igual(p, 'Entrevista A:20:3:true | Entrevista B:24:3:true | Entrevista C:12:3:true | Entrevista D:38:1:false',
     'Minhas fichas (Z): convocados com a própria nota e a situação da banca');
 
-  -- correção: o próprio avaliador regrava a ficha (upsert) -> ET muda
+  -- correção (migração 20260928130000): a ficha enviada fica travada; para corrigir, o próprio avaliador remove com
+  -- motivo e lança de novo -> ET muda
   perform pg_temp.como(ux, 'x@teste.local');
+  t := t || pg_temp.deve_falhar(format($q$select painel.salvar_ficha_entrevista(%L, '{"dominio":8,"analise":5,"planejamento":3,"comunicacao":3,"caso":2,"postura":2}', %L)$q$, ia, j::text),
+                                'regravar ficha enviada (travada)', 'travada');
+  perform painel.remover_minha_ficha(ia, 'Correção de nota lançada errada');
   perform painel.salvar_ficha_entrevista(ia, '{"dominio":8,"analise":5,"planejamento":3,"comunicacao":3,"caso":2,"postura":2}', j);
   select (painel.entrevista_do_candidato(ia)) ->> 'et' into p;
   t := t || pg_temp.igual(p, '21.00', 'corrigir a própria ficha atualiza a média ((23+20+20)/3)');
@@ -213,9 +217,10 @@ begin
   t := t || pg_temp.deve_falhar(format($q$select painel.salvar_ficha_entrevista(%L, '{"dominio":5,"analise":5,"planejamento":3,"comunicacao":3,"caso":2,"postura":2}', %L)$q$, id_, j::text),
                                 'a 11ª ficha é recusada', '10 fichas');
   perform pg_temp.como(uy, 'y@teste.local');
+  perform painel.remover_minha_ficha(id_, 'Correção de nota lançada errada');
   perform painel.salvar_ficha_entrevista(id_, '{"dominio":6,"analise":5,"planejamento":3,"comunicacao":3,"caso":2,"postura":2}', j);
   select (painel.entrevista_do_candidato(id_)) ->> 'n_fichas' into p;
-  t := t || pg_temp.igual(p, '10', 'no limite, quem já tem ficha ainda pode corrigir a sua');
+  t := t || pg_temp.igual(p, '10', 'no limite, quem já tem ficha ainda pode corrigir a sua (remove e lança de novo)');
 
   -- Usuários do painel não mostram mais o total de cada ficha
   select (count(*) > 0 and bool_and(x.avaliados::text not like '%"total"%'))::text into p
@@ -235,11 +240,11 @@ begin
   -- auditoria
   perform pg_temp.admin();
   select count(*) into n from interno.auditoria where entidade = 'interno.fichas_entrevista' and acao = 'INSERT';
-  t := t || pg_temp.igual(n::text, '19', 'cada ficha lançada fica na auditoria (19 inserções)');
-  select count(*) into n from interno.auditoria where entidade = 'interno.fichas_entrevista' and acao = 'UPDATE';
-  t := t || pg_temp.igual(n::text, '2', 'as correções ficam na auditoria');
+  t := t || pg_temp.igual(n::text, '21', 'cada ficha lançada fica na auditoria (19 fichas + 2 relançadas após correção)');
+  select count(*) into n from interno.auditoria where entidade = 'interno.fichas_entrevista' and acao = 'DELETE';
+  t := t || pg_temp.igual(n::text, '3', 'as remoções (2 correções + 1 remoção) ficam na auditoria com o conteúdo apagado');
   select count(*) into n from interno.auditoria where acao = 'MOTIVO_REMOCAO_FICHA';
-  t := t || pg_temp.igual(n::text, '1', 'o motivo da remoção fica na auditoria');
+  t := t || pg_temp.igual(n::text, '3', 'o motivo de cada remoção fica na auditoria');
 
   select count(*), count(x) into v_total, nf from unnest(t) x;
   raise exception 'RESULTADO_DOS_TESTES: % verificações, % falhas%', v_total, nf,

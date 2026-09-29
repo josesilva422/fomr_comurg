@@ -52,7 +52,7 @@ begin
     (us, 'authenticated', 'authenticated', 'staff-login@teste.local'),
     (uc, 'authenticated', 'authenticated', 'cand-login@teste.local');
   insert into interno.usuarios_internos (user_id, nome, email) values (us, 'Comissão Login Teste', 'staff-login@teste.local');
-  perform interno.definir_senha_painel('staff-login@teste.local', 'senha-de-teste-123');
+  perform interno.definir_senha_painel('staff-login@teste.local', 'Senha-de-Teste-123');
 
   ---------------------------------------------------------------- interruptor desligado: comportamento antigo
   perform pg_temp.como(us, s1);
@@ -85,7 +85,7 @@ begin
 
   -- senha correta, mas sessão de outro usuário não aproveita o desafio
   perform pg_temp.anonimo();
-  select painel.iniciar_login('STAFF-login@teste.local', 'senha-de-teste-123') into b;
+  select painel.iniciar_login('STAFF-login@teste.local', 'Senha-de-Teste-123') into b;
   t := t || pg_temp.igual(b::text, 'true', 'senha correta abre o desafio (e-mail sem diferenciar caixa)');
   perform pg_temp.como(uc, s2);
   select painel.concluir_login() into b;
@@ -114,19 +114,19 @@ begin
   -- bloqueio por tentativas
   perform pg_temp.anonimo();
   for n in 1..5 loop perform painel.iniciar_login('staff-login@teste.local', 'errada'); end loop;
-  select painel.iniciar_login('staff-login@teste.local', 'senha-de-teste-123') into b;
+  select painel.iniciar_login('staff-login@teste.local', 'Senha-de-Teste-123') into b;
   t := t || pg_temp.igual(b::text, 'false', 'após 5 erros a conta fica bloqueada, mesmo com a senha certa');
   perform pg_temp.admin();
   update interno.usuarios_internos set bloqueado_ate = now() - interval '1 minute' where user_id = us;
   perform pg_temp.anonimo();
-  select painel.iniciar_login('staff-login@teste.local', 'senha-de-teste-123') into b;
+  select painel.iniciar_login('staff-login@teste.local', 'Senha-de-Teste-123') into b;
   t := t || pg_temp.igual(b::text, 'true', 'passado o bloqueio, a senha certa volta a funcionar');
 
   -- tabelas internas não são lidas por candidato/anon, nem senha_hash
   perform pg_temp.como(us, s1);
   t := t || pg_temp.falha('select senha_hash from interno.usuarios_internos', 'membro lê hash de senha direto', 'permission denied');
   t := t || pg_temp.falha('select * from interno.sessoes_painel', 'membro lê sessões direto', 'permission denied');
-  t := t || pg_temp.falha('select interno.definir_senha_painel(''staff-login@teste.local'', ''outra-senha-longa'')', 'membro troca senha pela API', 'permission denied');
+  t := t || pg_temp.falha('select interno.definir_senha_painel(''staff-login@teste.local'', ''Outra-Senha-Longa-9'')', 'membro troca senha pela API', 'permission denied');
 
   perform pg_temp.admin();
   select count(*), count(x) into total, nf from unnest(t) x;
