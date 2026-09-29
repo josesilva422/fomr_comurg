@@ -27,6 +27,12 @@ const ITENS = [
     ],
   },
   {
+    grupo: "Portal",
+    links: [
+      { href: "/painel/publicacoes", rotulo: "Publicações e cronograma", dica: "Edital, comunicados e resultados na página inicial", ativo: (p: string) => p.startsWith("/painel/publicacoes") },
+    ],
+  },
+  {
     grupo: "Acesso",
     links: [
       { href: "/painel/usuarios", rotulo: "Usuários do painel", dica: "Quem acessa e quem avaliou", ativo: (p: string) => p.startsWith("/painel/usuarios") },
