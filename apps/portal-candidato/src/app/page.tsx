@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Cabecalho } from "@/components/Cabecalho";
 import { createClient } from "@/lib/supabase/server";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
+import { ItemComunicado, ItemDocumento } from "@/components/PortalPublicacoes";
 import {
-  CATEGORIAS,
-  ehNovo,
+  GRUPOS_DOCUMENTOS,
+  LIMITE_HOME,
   hojeSP,
+  ordenarDocumentos,
   situacaoEtapa,
-  tamanhoArquivo,
   textoData,
   type ItemCronograma,
   type PublicacaoPublica,
@@ -66,11 +67,18 @@ export default async function Inicio() {
   const hoje = hojeSP(agoraServidor);
 
   const edital = publicacoes.find((p) => p.categoria === "edital" && p.tem_arquivo);
-  const documentos = publicacoes.filter((p) => p.categoria !== "comunicado");
-  const comunicados = publicacoes.filter((p) => p.categoria === "comunicado");
+  const gruposDocs = GRUPOS_DOCUMENTOS.map((g) => ({
+    ...g,
+    itens: ordenarDocumentos(publicacoes.filter((p) => g.categorias.includes(p.categoria))),
+  })).filter((g) => g.itens.length > 0);
+  const comunicados = publicacoes
+    .filter((p) => p.categoria === "comunicado")
+    .sort((a, b) => new Date(b.publicado_em).getTime() - new Date(a.publicado_em).getTime());
   const etapas = cronograma.map((c) => ({ ...c, situacao: situacaoEtapa(c, hoje) }));
   const atuais = etapas.filter((c) => c.situacao === "andamento");
   const proxima = etapas.find((c) => c.situacao === "futura");
+  // Quadro lateral: o que está em andamento e as próximas datas (até 4 no total).
+  const proximasDatas = [...atuais, ...etapas.filter((c) => c.situacao === "futura")].slice(0, 4);
   const niveis = (["junior", "pleno", "senior"] as const).filter((n) => vagas.some((v) => v.nivel === n));
   const totalVagas = vagas.reduce((s, v) => s + v.quantidade, 0);
   const salarios = vagas.map((v) => Number(v.remuneracao));
@@ -105,7 +113,7 @@ export default async function Inicio() {
                 </button>
               ) : (
                 <Link href={logado ? "/inscricao" : "/entrar"} className="btn btn-primary btn-grande" aria-disabled={!aberto}>
-                  {logado ? "Continuar minha inscrição" : "Iniciar minha inscrição"}
+                  {estado === "encerrado" ? "Acessar minha inscrição" : logado ? "Continuar minha inscrição" : "Iniciar minha inscrição"}
                 </Link>
               )}
               {edital ? (
@@ -154,29 +162,32 @@ export default async function Inicio() {
             <section className="portal-bloco" id="comunicados" aria-labelledby="t-comunicados">
               <header className="portal-bloco-topo">
                 <h2 id="t-comunicados">Comunicados</h2>
+                {comunicados.length > LIMITE_HOME ? (
+                  <Link href="/publicacoes?tipo=comunicados" className="portal-ver-todas">
+                    Ver todos ({comunicados.length})
+                  </Link>
+                ) : null}
               </header>
               {comunicados.length === 0 ? (
                 <p className="portal-vazio">Nenhum comunicado até o momento.</p>
               ) : (
-                <ul className="portal-lista">
-                  {comunicados.map((c) => (
-                    <li key={c.id}>
-                      <div className="portal-lista-data">
-                        <span>{fmt.format(new Date(c.publicado_em))}</span>
-                        {ehNovo(c.publicado_em, agoraServidor) ? <span className="pill pill-ok">Novo</span> : null}
-                      </div>
-                      <div className="portal-lista-corpo">
-                        <b>{c.titulo}</b>
-                        {c.texto ? <p>{c.texto}</p> : null}
-                        {c.tem_arquivo ? (
-                          <a href={`/publicacoes/${c.id}`} target="_blank" rel="noopener noreferrer">
-                            Abrir PDF
-                          </a>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="portal-lista">
+                    {comunicados.slice(0, LIMITE_HOME).map((c) => (
+                      <ItemComunicado key={c.id} c={c} agora={agoraServidor} />
+                    ))}
+                  </ul>
+                  {comunicados.length > LIMITE_HOME ? (
+                    <details className="portal-mais">
+                      <summary>Ver comunicados anteriores ({comunicados.length - LIMITE_HOME})</summary>
+                      <ul className="portal-lista">
+                        {comunicados.slice(LIMITE_HOME).map((c) => (
+                          <ItemComunicado key={c.id} c={c} agora={agoraServidor} />
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                </>
               )}
               <p className="portal-rodape-bloco">
                 Retificações, resultados, convocações e demais atos são publicados exclusivamente nesta plataforma. Acompanhar as publicações é
@@ -187,42 +198,65 @@ export default async function Inicio() {
             <section className="portal-bloco" id="documentos" aria-labelledby="t-documentos">
               <header className="portal-bloco-topo">
                 <h2 id="t-documentos">Edital e documentos oficiais</h2>
+                {publicacoes.length ? (
+                  <Link href="/publicacoes" className="portal-ver-todas">
+                    Todas as publicações
+                  </Link>
+                ) : null}
               </header>
-              {documentos.length === 0 ? (
+              {gruposDocs.length === 0 ? (
                 <p className="portal-vazio">Os documentos oficiais serão publicados aqui.</p>
               ) : (
-                <ul className="portal-docs">
-                  {documentos.map((d) => (
-                    <li key={d.id}>
-                      <span className="portal-docs-icone" aria-hidden>
-                        PDF
-                      </span>
-                      <div className="portal-docs-info">
-                        <span className="portal-docs-cat">
-                          {CATEGORIAS[d.categoria]}
-                          {ehNovo(d.publicado_em, agoraServidor) ? <span className="pill pill-ok">Novo</span> : null}
-                        </span>
-                        <b>{d.titulo}</b>
-                        {d.texto ? <p>{d.texto}</p> : null}
-                        <small>
-                          Publicado em {fmt.format(new Date(d.publicado_em))}
-                          {d.arquivo_bytes ? ` · ${tamanhoArquivo(d.arquivo_bytes)}` : ""}
-                        </small>
-                      </div>
-                      {d.tem_arquivo ? (
-                        <a className="btn btn-sm" href={`/publicacoes/${d.id}`} target="_blank" rel="noopener noreferrer">
-                          Abrir
-                        </a>
+                <div className="portal-grupos-docs">
+                  {gruposDocs.map((g) => (
+                    <div key={g.chave} className="portal-grupo-docs">
+                      <h3>{g.titulo}</h3>
+                      <ul className="portal-docs">
+                        {g.itens.slice(0, LIMITE_HOME).map((d) => (
+                          <ItemDocumento key={d.id} d={d} agora={agoraServidor} mostrarCategoria={g.chave === "edital"} />
+                        ))}
+                      </ul>
+                      {g.itens.length > LIMITE_HOME ? (
+                        <details className="portal-mais">
+                          <summary>
+                            Ver mais {g.itens.length - LIMITE_HOME} em {g.titulo.toLowerCase()}
+                          </summary>
+                          <ul className="portal-docs">
+                            {g.itens.slice(LIMITE_HOME).map((d) => (
+                              <ItemDocumento key={d.id} d={d} agora={agoraServidor} mostrarCategoria={g.chave === "edital"} />
+                            ))}
+                          </ul>
+                        </details>
                       ) : null}
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </section>
           </div>
 
-          {/* 4. Lateral: como se inscrever */}
+          {/* 4. Lateral: próximas datas e como se inscrever */}
           <aside className="portal-coluna-lateral">
+            {proximasDatas.length ? (
+              <section className="portal-bloco" aria-labelledby="t-proximas">
+                <header className="portal-bloco-topo">
+                  <h2 id="t-proximas">Próximas datas</h2>
+                  <a href="#cronograma" className="portal-ver-todas">
+                    Cronograma
+                  </a>
+                </header>
+                <ul className="portal-proximas">
+                  {proximasDatas.map((c) => (
+                    <li key={c.ordem} className={c.situacao === "andamento" ? "is-andamento" : undefined}>
+                      <span className="portal-proximas-data">{textoData(c)}</span>
+                      <span>{c.evento}</span>
+                      {c.situacao === "andamento" ? <span className="pill pill-ok">Em andamento</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
             <section className="portal-bloco" aria-labelledby="t-como">
               <header className="portal-bloco-topo">
                 <h2 id="t-como">Como se inscrever</h2>

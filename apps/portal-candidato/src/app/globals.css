@@ -597,3 +597,26 @@ table.tabela.tabela-estatica tbody tr{cursor:default}
 .portal-contato-itens dt{font-size:14px;font-weight:800}
 .portal-contato-itens dd{margin:0;font-size:14px;color:var(--muted)}
 .tabela-wrap table.portal-tabela-vagas tfoot td{font-weight:800;background:var(--surface-2);border-top:1px solid var(--line)}
+/* listas longas: só os mais recentes na página inicial; o resto em "ver mais" e em /publicacoes */
+.portal-ver-todas{font-size:14px;font-weight:700}
+.portal-mais{margin-top:12px}
+.portal-mais>summary{cursor:pointer;font-size:14px;font-weight:700;color:var(--brand);list-style:none;display:inline-flex;align-items:center;gap:8px;padding:6px 0}
+.portal-mais>summary::-webkit-details-marker{display:none}
+.portal-mais>summary::before{content:"";width:0;height:0;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent var(--brand);transition:transform .15s}
+.portal-mais[open]>summary::before{transform:rotate(90deg)}
+.portal-mais[open]>summary{margin-bottom:10px}
+.portal-grupos-docs{display:grid;gap:20px}
+.portal-grupo-docs h3{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px}
+.portal-voltar{font-size:14px;font-weight:600}
+.portal-pagina-titulo{font-size:30px;font-weight:800;margin:10px 0 6px}
+.portal-pagina-sub{color:var(--muted);max-width:70ch}
+.portal-filtros{display:flex;flex-wrap:wrap;gap:8px}
+.portal-filtro{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--surface);font-size:14px;font-weight:600;color:var(--text);text-decoration:none}
+.portal-filtro span{font-size:12px;font-weight:800;background:var(--surface-2);border-radius:99px;padding:1px 8px;color:var(--muted)}
+.portal-filtro:hover{border-color:var(--brand);color:var(--brand)}
+.portal-filtro.is-ativo{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.portal-filtro.is-ativo span{background:rgba(255,255,255,.2);color:var(--on-brand)}
+.portal-proximas{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.portal-proximas li{display:grid;gap:3px;justify-items:start;padding:10px 12px;border-left:3px solid var(--line-strong);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:14px}
+.portal-proximas li.is-andamento{border-left-color:var(--brand);background:var(--brand-soft)}
+.portal-proximas-data{font-size:13px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums}

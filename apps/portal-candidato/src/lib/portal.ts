@@ -71,3 +71,24 @@ export function tamanhoArquivo(bytes: number | null): string {
 
 /** Publicado há até 3 dias. */
 export const ehNovo = (iso: string, agora: Date = new Date()) => agora.getTime() - new Date(iso).getTime() < 3 * 24 * 3600 * 1000;
+
+/** Quantos itens cada lista mostra na página inicial; o restante fica em "Ver todos". */
+export const LIMITE_HOME = 3;
+
+/** Grupos de documentos na página inicial e na página de publicações. */
+export const GRUPOS_DOCUMENTOS: { chave: string; titulo: string; categorias: CategoriaPublicacao[] }[] = [
+  { chave: "edital", titulo: "Edital e retificações", categorias: ["edital", "retificacao"] },
+  { chave: "resultados", titulo: "Resultados", categorias: ["resultado"] },
+  { chave: "anexos", titulo: "Anexos e formulários", categorias: ["anexo"] },
+  { chave: "outros", titulo: "Outros documentos", categorias: ["outro"] },
+];
+
+/** Mais recente primeiro; no grupo do edital, o edital fica fixo no topo e as retificações vêm depois. */
+export function ordenarDocumentos(lista: PublicacaoPublica[]): PublicacaoPublica[] {
+  return [...lista].sort((a, b) => {
+    const fa = a.categoria === "edital" ? 0 : 1;
+    const fb = b.categoria === "edital" ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    return new Date(b.publicado_em).getTime() - new Date(a.publicado_em).getTime();
+  });
+}
