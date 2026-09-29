@@ -537,7 +537,7 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .portal-docs-info p{font-size:14px;white-space:pre-line}
 .portal-docs-info small{font-size:13px;color:var(--muted)}
 .portal-passos{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:passo}
-.portal-passos li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:2px 12px;counter-increment:passo}
+.portal-passos li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:2px 12px;align-content:start;counter-increment:passo}
 .portal-passos li::before{content:counter(passo);grid-row:span 2;width:32px;height:32px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:14px}
 .portal-passos b{font-size:15px}
 .portal-passos span{font-size:14px;color:var(--muted)}
@@ -620,3 +620,8 @@ table.tabela.tabela-estatica tbody tr{cursor:default}
 .portal-proximas li{display:grid;gap:3px;justify-items:start;padding:10px 12px;border-left:3px solid var(--line-strong);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:14px}
 .portal-proximas li.is-andamento{border-left-color:var(--brand);background:var(--brand-soft)}
 .portal-proximas-data{font-size:13px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums}
+/* como se inscrever em faixa horizontal; lateral acompanha a rolagem */
+@media(min-width:900px){
+  .portal-passos-linha{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .portal-lateral-fixa{position:sticky;top:16px}
+}

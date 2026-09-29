@@ -156,6 +156,29 @@ export default async function Inicio() {
           </ul>
         ) : null}
 
+        {/* Como se inscrever: faixa de 3 passos (some depois do encerramento) */}
+        {estado !== "encerrado" ? (
+          <section className="portal-bloco portal-como" aria-labelledby="t-como">
+            <header className="portal-bloco-topo">
+              <h2 id="t-como">Como se inscrever</h2>
+            </header>
+            <ol className="portal-passos portal-passos-linha">
+              <li>
+                <b>Acesse com seu e-mail</b>
+                <span>Você recebe um código de acesso, sem criar senha.</span>
+              </li>
+              <li>
+                <b>Preencha e anexe</b>
+                <span>Dados pessoais, vaga, formação, experiência, documentos e comprovante do Pix. Tudo é salvo e você pode continuar depois.</span>
+              </li>
+              <li>
+                <b>Confira e envie</b>
+                <span>Revise e clique em Enviar solicitação. Depois do envio, a inscrição não pode ser alterada.</span>
+              </li>
+            </ol>
+          </section>
+        ) : null}
+
         <div className="portal-colunas">
           {/* 3. Coluna principal: comunicados e documentos oficiais */}
           <div className="portal-coluna-principal">
@@ -235,8 +258,8 @@ export default async function Inicio() {
             </section>
           </div>
 
-          {/* 4. Lateral: próximas datas e como se inscrever */}
-          <aside className="portal-coluna-lateral">
+          {/* 4. Lateral: próximas datas (acompanha a rolagem) */}
+          <aside className="portal-coluna-lateral portal-lateral-fixa">
             {proximasDatas.length ? (
               <section className="portal-bloco" aria-labelledby="t-proximas">
                 <header className="portal-bloco-topo">
@@ -256,26 +279,6 @@ export default async function Inicio() {
                 </ul>
               </section>
             ) : null}
-
-            <section className="portal-bloco" aria-labelledby="t-como">
-              <header className="portal-bloco-topo">
-                <h2 id="t-como">Como se inscrever</h2>
-              </header>
-              <ol className="portal-passos">
-                <li>
-                  <b>Acesse com seu e-mail</b>
-                  <span>Você recebe um código de acesso, sem criar senha.</span>
-                </li>
-                <li>
-                  <b>Preencha e anexe</b>
-                  <span>Dados pessoais, vaga, formação, experiência, documentos e comprovante do Pix. Tudo é salvo e você pode continuar depois.</span>
-                </li>
-                <li>
-                  <b>Confira e envie</b>
-                  <span>Revise e clique em Enviar solicitação. Depois do envio, a inscrição não pode ser alterada.</span>
-                </li>
-              </ol>
-            </section>
           </aside>
         </div>
 
