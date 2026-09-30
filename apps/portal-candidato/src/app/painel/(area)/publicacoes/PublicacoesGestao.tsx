@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORIAS, tamanhoArquivo, type CategoriaPublicacao } from "@/lib/portal";
 
@@ -69,6 +69,20 @@ function NovaPublicacao({ aoSalvar }: { aoSalvar: () => void }) {
   const [erro, setErro] = useState("");
   const [ok, setOk] = useState("");
   const [chaveArquivo, setChaveArquivo] = useState(0);
+  const inputArquivo = useRef<HTMLInputElement>(null);
+
+  function escolherArquivo(f: File | null) {
+    setErro("");
+    if (f && f.type !== "application/pdf") {
+      setChaveArquivo((k) => k + 1);
+      return setErro("Anexe o documento em PDF.");
+    }
+    if (f && f.size > LIMITE_BYTES) {
+      setChaveArquivo((k) => k + 1);
+      return setErro("O PDF passa de 20 MB.");
+    }
+    setArquivo(f);
+  }
 
   async function salvar() {
     setErro("");
@@ -148,10 +162,40 @@ function NovaPublicacao({ aoSalvar }: { aoSalvar: () => void }) {
         <label htmlFor="pub-texto">Texto {categoria === "comunicado" ? "do comunicado" : "(opcional, aparece abaixo do título)"}</label>
         <textarea id="pub-texto" rows={3} maxLength={5000} value={texto} onChange={(e) => setTexto(e.target.value)} />
       </div>
-      <div className="field">
-        <label htmlFor="pub-arquivo">Arquivo PDF {categoria === "comunicado" ? "(opcional)" : ""} — até 20 MB</label>
-        <input key={chaveArquivo} id="pub-arquivo" type="file" accept="application/pdf" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
-      </div>
+      <input
+        key={chaveArquivo}
+        ref={inputArquivo}
+        id="pub-arquivo"
+        type="file"
+        accept="application/pdf"
+        hidden
+        onChange={(e) => escolherArquivo(e.target.files?.[0] ?? null)}
+      />
+      {arquivo ? (
+        <div className="pub-anexo">
+          <span className="portal-docs-icone" aria-hidden>
+            PDF
+          </span>
+          <div className="pub-anexo-info">
+            <b>{arquivo.name}</b>
+            <small>{tamanhoArquivo(arquivo.size)} · será enviado ao salvar</small>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => {
+              setArquivo(null);
+              setChaveArquivo((k) => k + 1);
+            }}
+          >
+            Remover
+          </button>
+        </div>
+      ) : (
+        <p className="hint" style={{ margin: "4px 0 0" }}>
+          Documento em PDF, até 20 MB{categoria === "comunicado" ? " (opcional no comunicado)" : ""}. Use o botão Anexar documento abaixo.
+        </p>
+      )}
       {categoria === "resultado" ? (
         <div className="alert alert-warn">
           <p>
@@ -170,7 +214,10 @@ function NovaPublicacao({ aoSalvar }: { aoSalvar: () => void }) {
         </p>
       ) : null}
       {ok ? <p className="hint">{ok}</p> : null}
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" className="btn" disabled={enviando} onClick={() => inputArquivo.current?.click()}>
+          {arquivo ? "Trocar documento" : "Anexar documento"}
+        </button>
         <button type="button" className="btn btn-primary" disabled={enviando} onClick={() => void salvar()}>
           {enviando ? "Salvando…" : publicarAgora ? "Salvar e publicar" : "Salvar"}
         </button>
