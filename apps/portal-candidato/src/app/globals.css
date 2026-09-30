@@ -488,9 +488,9 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .portal-hero-grid{display:grid;gap:24px;align-items:center}
 @media(min-width:900px){.portal-hero-grid{grid-template-columns:minmax(0,1fr) 380px;gap:40px}}
 .portal-hero-edital{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.9}
-.portal-hero h1{font-size:32px;font-weight:800;margin:8px 0 12px;letter-spacing:-.01em}
+.portal-hero h1{font-size:32px;font-weight:800;margin:8px 0 6px;letter-spacing:-.01em}
 @media(min-width:640px){.portal-hero h1{font-size:42px}}
-.portal-hero-texto>p:last-child{font-size:17px;max-width:56ch;opacity:.95}
+.portal-hero-numero{font-size:20px;font-weight:600;opacity:.95}
 .portal-status{background:var(--surface);color:var(--text);border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:grid;gap:6px}
 .portal-status-selo{justify-self:start;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:5px 12px;border-radius:99px}
 .portal-status-selo::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
@@ -544,7 +544,8 @@ table.tabela tbody tr:last-child td{border-bottom:0}
 .tabela-wrap table.portal-tabela-vagas th,.tabela-wrap table.portal-tabela-vagas td{text-align:center;vertical-align:middle}
 .tabela-wrap table.portal-tabela-vagas th:first-child,.tabela-wrap table.portal-tabela-vagas td:first-child{text-align:left}
 .tabela-wrap table.portal-tabela-vagas th:last-child,.tabela-wrap table.portal-tabela-vagas td:last-child{text-align:right}
-.tabela-wrap table.portal-tabela-vagas th small{display:block;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;white-space:normal;margin-top:2px}
+.tabela-wrap table.portal-tabela-vagas th small{display:block;font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:0;white-space:normal;margin-top:3px;color:var(--text);opacity:.8}
+.tabela-wrap table.portal-tabela-vagas .portal-grupo-nome{font-size:13px;font-weight:800;color:var(--text)}
 .portal-tabela-vagas td{font-size:16px}
 table.tabela.tabela-estatica tbody tr{cursor:default}
 .portal-recolher>summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer;list-style:none;user-select:none}
@@ -625,3 +626,4 @@ table.tabela.tabela-estatica tbody tr{cursor:default}
   .portal-passos-linha{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
   .portal-lateral-fixa{position:sticky;top:16px}
 }
+.tabela-wrap table.portal-tabela-vagas thead th{vertical-align:top}

@@ -91,12 +91,9 @@ export default async function Inicio() {
       <section className="portal-hero" aria-labelledby="t-processo">
         <div className="wrap portal-hero-grid">
           <div className="portal-hero-texto">
-            <p className="portal-hero-edital">Edital nº 001/2026 · Companhia de Urbanização de Goiânia</p>
+            <p className="portal-hero-edital">Companhia de Urbanização de Goiânia</p>
             <h1 id="t-processo">Processo Seletivo Simplificado 2026</h1>
-            <p>
-              Contratação temporária de analistas para os Grupos A, B e C, nos níveis Júnior, Pleno e Sênior. Seleção por análise curricular e
-              entrevista técnica. Inscrição somente pela internet, nesta plataforma.
-            </p>
+            <p className="portal-hero-numero">Edital nº 001/2026</p>
           </div>
 
           <div className="portal-status" aria-live="polite">
@@ -126,7 +123,7 @@ export default async function Inicio() {
                 </a>
               )}
             </div>
-            <p className="portal-status-nota">Taxa de inscrição: R$ 100,00, por Pix (item 4.8).</p>
+            <p className="portal-status-nota">Taxa de inscrição: R$ 100,00, por Pix.</p>
           </div>
         </div>
       </section>
@@ -297,8 +294,10 @@ export default async function Inicio() {
                       <th>Nível</th>
                       {(["A", "B", "C"] as const).map((g) => (
                         <th key={g}>
-                          <span className="portal-so-largo">Grupo </span>
-                          {g}
+                          <b className="portal-grupo-nome">
+                            <span className="portal-so-largo">Grupo </span>
+                            {g}
+                          </b>
                           <small>{GRUPOS[g].descricao}</small>
                         </th>
                       ))}
