@@ -84,6 +84,8 @@ export interface LinhaClassificacao {
   banca_completa: boolean;
   abaixo_do_corte: boolean;
   posicao: number | null;
+  /** Quantidade de vagas imediatas do Grupo/Nível (interno.vagas) — define o corte do cadastro de reserva. */
+  vagas: number;
 }
 
 export const fmtNota = (v: number | null | undefined) =>

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Grupo, Nivel } from "@/lib/tipos";
 import { BANCA_MINIMA, fmtNota, type LinhaClassificacao } from "@/lib/entrevista";
+import { PublicarResultadoFinal, type PublicacaoFinal } from "./PublicarResultadoFinal";
 
 const fmtCPF = (v: string) => v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 
@@ -17,6 +18,8 @@ export function ClassificacaoTabela() {
   const [nivel, setNivel] = useState<Nivel | "">("");
   const chave = `${grupo}|${nivel}`;
   const [res, setRes] = useState<{ chave: string; linhas: LinhaClassificacao[]; erro: string } | null>(null);
+  const [publicacoes, setPublicacoes] = useState<Record<string, PublicacaoFinal>>({});
+  const [versaoPublicacoes, setVersaoPublicacoes] = useState(0);
 
   useEffect(() => {
     let vivo = true;
@@ -30,6 +33,15 @@ export function ClassificacaoTabela() {
       vivo = false;
     };
   }, [grupo, nivel, chave]);
+
+  useEffect(() => {
+    createClient()
+      .schema("painel")
+      .rpc("publicacoes_final")
+      .then(({ data }: { data: (PublicacaoFinal & { inscricao_id: string })[] | null }) =>
+        setPublicacoes(Object.fromEntries((data ?? []).map((r) => [r.inscricao_id, r]))),
+      );
+  }, [versaoPublicacoes]);
 
   const carregando = !res || res.chave !== chave;
   const erro = res && res.chave === chave ? res.erro : "";
@@ -76,6 +88,7 @@ export function ClassificacaoTabela() {
                 <th style={{ textAlign: "right" }}>ET (40)</th>
                 <th style={{ textAlign: "right" }}>PF (100)</th>
                 <th>Situação</th>
+                <th>Publicação ao candidato</th>
               </tr>
             </thead>
             <tbody>
@@ -102,8 +115,27 @@ export function ClassificacaoTabela() {
                       <span className="pill pill-err">Abaixo de 15 pts (6.5.7)</span>
                     ) : !l.banca_completa ? (
                       <span className="pill pill-muted">Aguardando fichas ({l.n_fichas} de {BANCA_MINIMA})</span>
+                    ) : l.posicao && l.posicao <= l.vagas ? (
+                      <span className="pill pill-ok">Classificado ({l.posicao}º)</span>
+                    ) : l.posicao ? (
+                      <span className="pill pill-ok">Cadastro de reserva ({l.posicao}º)</span>
                     ) : (
-                      <span className="pill pill-ok">Classificado</span>
+                      <span className="pill pill-muted">Não classificado</span>
+                    )}
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {l.abaixo_do_corte || l.banca_completa ? (
+                      <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+                        {publicacoes[l.inscricao_id] ? <small className="hint">Publicado: {publicacoes[l.inscricao_id].situacao}</small> : null}
+                        <PublicarResultadoFinal
+                          inscricaoId={l.inscricao_id}
+                          nome={l.nome}
+                          publicacao={publicacoes[l.inscricao_id] ?? null}
+                          aoPublicar={() => setVersaoPublicacoes((v) => v + 1)}
+                        />
+                      </div>
+                    ) : (
+                      <small className="hint">Aguardando banca</small>
                     )}
                   </td>
                 </tr>
