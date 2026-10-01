@@ -327,7 +327,7 @@ Tabela seedada em `interno.vagas` (grupo, nivel, quantidade, remuneracao) desde 
 
 Total de 10 vagas imediatas. **Vagas não migram entre Grupos ou níveis** sem retificação publicada. Reservas de PcD (5%) e de candidatos negros (20%) não geram vaga imediata nesta distribuição; valem como **preferência no cadastro de reserva**, na ordem de classificação (10.1 e 10.2). Heteroidentificação por comissão de no mínimo 5 membros (10.4), fora do escopo inicial; o sistema só registra a autodeclaração e o resultado.
 
-**Cadastro de reserva (itens 2.1 e 11.1, minuta v11):** 2 (dois) candidatos por vaga — Júnior 6, Pleno 8, Sênior 6, total **20**. Ainda não há tabela nem tela própria no banco para isso; fica para a Fase 4 (seção 12).
+**Cadastro de reserva (itens 2.1 e 11.1, minuta v11):** 2 (dois) candidatos por vaga — Júnior 6, Pleno 8, Sênior 6, total **20**. Implementado em 01/10/2026 sem tabela própria: é a mesma classificação final (PF = AC + ET) dividida pela quantidade de vagas de `interno.vagas` — 1ª até a Nª posição é vaga imediata, da (N+1)ª até a (3N)ª é cadastro de reserva (mesmo teto 3× usado para convocar para a entrevista). Ver D35 em `docs/decisoes-pendentes.md`; `painel.publicar_resultado_final`, tela em `classificacao/`.
 
 ### 8.8 Recursos (Cap. IX)
 
@@ -377,7 +377,7 @@ Regras do `motor_regras`:
 3. **Isenção por e-mail vs. plataforma:** o edital diz "exclusivamente por e-mail" (4.10). Confirmar se o pedido será feito por upload na plataforma (recomendado) e ajustar o edital.
 4. **Equivalência da pós (Pleno):** 5 anos de experiência substituem a pós, mas o mínimo já é de 4 anos. Definir se o mesmo período pode servir aos dois fins e se o excedente pontua.
 5. **"Tecnologia da Informação" no Grupo B** aparece como graduação aceita, mas o item 5.1.6 exclui tecnólogo em todos os grupos e níveis (a dúvida sobre o Sênior foi resolvida). Definir se só vale o bacharelado com esse nome.
-6. ~~**Cadastro de reserva do nível Pleno**~~ **Resolvido pela minuta v11 (01/10/2026):** os itens 2.1 e 11.1 foram unificados numa fórmula só, **2 (dois) candidatos por vaga** — Júnior 6, Pleno 8, Sênior 6, total 20. A funcionalidade de cadastro de reserva ainda não foi construída no sistema (ver seção 12, Fase 4).
+6. ~~**Cadastro de reserva do nível Pleno**~~ **Resolvido pela minuta v11 (01/10/2026):** os itens 2.1 e 11.1 foram unificados numa fórmula só, **2 (dois) candidatos por vaga** — Júnior 6, Pleno 8, Sênior 6, total 20. **Construído em 01/10/2026** (ver D35 em `docs/decisoes-pendentes.md`).
 7. **Cláusula sobre uso de sistema assistido por IA** no edital, com decisão final sempre da Comissão.
 8. **Tratamento de mestrado/doutorado em áreas afins** e regra para "áreas diretamente relacionadas" quando a pós não está na lista.
 9. **Conferência do Pix:** a chave é estática (CNPJ) e o comprovante é obrigatório. Definir quem concilia com o extrato bancário e como o financeiro acessa o extrato (arquivo OFX/CSV ou API do banco). Tratar o **CPF mascarado** nos comprovantes (verificação parcial).
