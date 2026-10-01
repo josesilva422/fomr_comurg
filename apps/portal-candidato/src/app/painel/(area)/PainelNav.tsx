@@ -24,6 +24,7 @@ const ITENS = [
     links: [
       { href: "/painel/isencoes", rotulo: "Isenção da taxa", dica: "Analisar documentos e decidir", ativo: (p: string) => p.startsWith("/painel/isencoes") },
       { href: "/painel/homologacao", rotulo: "Homologação", dica: "Aprovar ou rejeitar inscrições", ativo: (p: string) => p.startsWith("/painel/homologacao") },
+      { href: "/painel/cursos-catalogo", rotulo: "Cursos fora do catálogo", dica: "Deliberar sobre a pontuação", ativo: (p: string) => p.startsWith("/painel/cursos-catalogo") },
     ],
   },
   {

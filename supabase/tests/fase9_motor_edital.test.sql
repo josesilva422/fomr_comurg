@@ -160,7 +160,7 @@ begin
                           'aviso das faixas de experiência não diz mais "convenção assumida"');
   t := t || pg_temp.igual(((av.detalhamento -> 'avisos_metodologicos')::text like '%Anexo I, item 3, e item 6.4.2%')::text, 'true',
                           'aviso das faixas de experiência cita o edital');
-  t := t || pg_temp.igual(av.versao_motor, 'v8-2026-09-29', 'versão do motor');
+  t := t || pg_temp.igual(av.versao_motor, 'v9-2026-10-01', 'versão do motor');
 
   -- Corte da publicação do edital (Anexo I, itens 1 e 2; minuta v9: publicação em 05/10/2026): curso concluído no dia da
   -- publicação pontua; no dia seguinte, não.
