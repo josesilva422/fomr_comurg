@@ -159,6 +159,11 @@ export function ResultadoIsencao({ inscricaoId, isencao }: { inscricaoId: string
         <>
           <p>Seu pedido de isenção foi indeferido em {fmt(res.decidido_em)}.</p>
           <p className="hint">Motivo registrado pela Comissão: {res.motivo}</p>
+          <p className="hint">
+            Cabe recurso contra o indeferimento da isenção (item 9.1, alínea a do edital), no prazo de 3 dias úteis contados do dia útil seguinte à publicação
+            do resultado (Anexo IV: 19, 20 e 21/10/2026). O recurso é enviado exclusivamente pelo e-mail pss2026comurg@comurg.com.br, com o formulário do Anexo
+            VI preenchido e assinado, e &quot;RECURSO&quot;, a etapa, o seu nome e o Grupo/Nível no assunto (item 9.2).
+          </p>
         </>
       )}
 
