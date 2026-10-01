@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MotorRegrasBotao } from "./MotorRegras";
@@ -39,23 +40,58 @@ const ITENS = [
       { href: "/painel/relatorios", rotulo: "Respostas do formulário", dica: "Baixar em Excel ou PDF", ativo: (p: string) => p.startsWith("/painel/relatorios") },
     ],
   },
-];
+] as const;
+
+function grupoAtivo(caminho: string): string | null {
+  return ITENS.find((g) => g.links.some((l) => l.ativo(caminho)))?.grupo ?? null;
+}
 
 export function PainelNav() {
   const caminho = usePathname();
+  // Cada tópico começa fechado, exceto o que contém a página atual.
+  const [abertos, setAbertos] = useState<Set<string>>(() => {
+    const ativo = grupoAtivo(caminho);
+    return new Set(ativo ? [ativo] : []);
+  });
+
+  // Ao navegar para uma página de outro tópico, abre-o também (sem fechar os que já estavam abertos).
+  useEffect(() => {
+    const ativo = grupoAtivo(caminho);
+    if (ativo) setAbertos((prev) => (prev.has(ativo) ? prev : new Set(prev).add(ativo)));
+  }, [caminho]);
+
+  function alternar(grupo: string) {
+    setAbertos((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(grupo)) novo.delete(grupo);
+      else novo.add(grupo);
+      return novo;
+    });
+  }
+
   return (
     <nav className="painel-nav" aria-label="Menu do painel">
-      {ITENS.map((g) => (
-        <div key={g.grupo} className="painel-nav-grupo">
-          <p className="painel-nav-titulo">{g.grupo}</p>
-          {g.links.map((l) => (
-            <Link key={l.href} href={l.href} className={`painel-nav-link${l.ativo(caminho) ? " is-ativo" : ""}`} aria-current={l.ativo(caminho) ? "page" : undefined}>
-              <span>{l.rotulo}</span>
-              <small>{l.dica}</small>
-            </Link>
-          ))}
-        </div>
-      ))}
+      {ITENS.map((g) => {
+        const aberto = abertos.has(g.grupo);
+        return (
+          <div key={g.grupo} className="painel-nav-grupo">
+            <button type="button" className="painel-nav-topico" aria-expanded={aberto} onClick={() => alternar(g.grupo)}>
+              <span>{g.grupo}</span>
+              <span className={`painel-nav-seta${aberto ? " is-aberta" : ""}`} aria-hidden>
+                ›
+              </span>
+            </button>
+            <div className={`painel-nav-links${aberto ? "" : " is-fechado"}`}>
+              {g.links.map((l) => (
+                <Link key={l.href} href={l.href} className={`painel-nav-link${l.ativo(caminho) ? " is-ativo" : ""}`} aria-current={l.ativo(caminho) ? "page" : undefined}>
+                  <span>{l.rotulo}</span>
+                  <small>{l.dica}</small>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })}
       <div className="painel-nav-grupo">
         <p className="painel-nav-titulo">Consulta</p>
         <MotorRegrasBotao />
