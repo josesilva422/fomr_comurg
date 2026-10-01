@@ -7,6 +7,7 @@
 do $teste$
 declare
   ustaff constant uuid := 'd0000000-0000-0000-0000-00000000000d';
+  sstaff constant uuid := 'd1000000-0000-0000-0000-00000000000d';
   ua constant uuid := 'e0000000-0000-0000-0000-00000000000a';
   ub constant uuid := 'e0000000-0000-0000-0000-00000000000b';
   uc constant uuid := 'e0000000-0000-0000-0000-00000000000c';
@@ -19,7 +20,8 @@ declare
 begin
   execute $f$create function pg_temp.como(p_uid uuid, p_email text) returns void language plpgsql as $b$
     begin
-      perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_email)::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_email,
+        'session_id', case when p_uid = 'd0000000-0000-0000-0000-00000000000d' then 'd1000000-0000-0000-0000-00000000000d' end)::text, true);
       execute 'set local role authenticated';
     end $b$
   $f$;
@@ -82,6 +84,7 @@ begin
     (ue, 'authenticated', 'authenticated', 'ee@teste.local'),
     (uf, 'authenticated', 'authenticated', 'ef@teste.local');
   insert into interno.usuarios_internos (user_id, nome, email, perfil) values (ustaff, 'Fiscal Teste', 'staff@teste.local', 'comissao');
+  insert into interno.sessoes_painel (session_id, user_id) values (sstaff, ustaff);
 
   -- Grupo A / Júnior, vagas = 1 (seed interno.vagas) => corte da convocação = 1 × 3 = 3 (item 6.5.1).
   -- Todos com o MESMO vínculo (2015-01 a 2026-01 = 133 meses => excedente 121m => 35,0 pts de experiência,
@@ -163,11 +166,11 @@ begin
   perform pg_temp.admin();
   perform pg_temp.como(ustaff, 'staff@teste.local');
   select count(*) into n from painel.listar_cronograma();
-  t := t || pg_temp.igual(n::text, '24', 'cronograma tem os 24 itens do Anexo IV (minuta v9, publicação em 05/10/2026)');
+  t := t || pg_temp.igual(n::text, '24', 'cronograma tem os 24 itens do Anexo IV (minuta v11, publicação em 05/10/2026)');
   select data_inicio::text || '..' || data_fim::text into p from painel.listar_cronograma() where ordem = 18;
   t := t || pg_temp.igual(p, '2026-11-19..2026-11-30', 'item 18 (entrevistas técnicas): 19/11 a 30/11/2026');
   select data_fim::text into p from painel.listar_cronograma() where ordem = 24;
-  t := t || pg_temp.igual(p, '2026-12-11', 'item 24 (homologação do resultado final): até 11/12/2026');
+  t := t || pg_temp.igual(p, '2026-12-16', 'item 24 (homologação do resultado final, minuta v11): até 16/12/2026');
 
   ---------------------------------------------------------------- resultado (a exceção desfaz TUDO)
   select count(*), count(x) into v_total, nf from unnest(t) x;
