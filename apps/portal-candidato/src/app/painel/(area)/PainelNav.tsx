@@ -27,6 +27,7 @@ const ITENS = [
       { href: "/painel/homologacao", rotulo: "Homologação", dica: "Aprovar ou rejeitar inscrições", ativo: (p: string) => p.startsWith("/painel/homologacao") },
       { href: "/painel/cursos-catalogo", rotulo: "Cursos fora do catálogo", dica: "Deliberar sobre a pontuação", ativo: (p: string) => p.startsWith("/painel/cursos-catalogo") },
       { href: "/painel/recursos", rotulo: "Recursos", dica: "Registrar e decidir (recebidos por e-mail)", ativo: (p: string) => p.startsWith("/painel/recursos") },
+      { href: "/painel/eliminacoes", rotulo: "Eliminação por fraude", dica: "Falsidade documental (5.5.4, 14.3)", ativo: (p: string) => p.startsWith("/painel/eliminacoes") },
     ],
   },
   {
