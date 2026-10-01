@@ -1,0 +1,114 @@
+-- Fase 19 · Eliminação por fraude ou falsidade documental (migração 20261002110000_eliminacao_por_fraude.sql):
+-- interno.eliminacoes, painel.eliminar_por_fraude, painel.reverter_eliminacao, painel.listar_eliminacoes
+-- (itens 5.5.4 e 14.3: eliminação imediata, decisão exclusivamente humana, sempre fundamentada).
+-- Roda inteiro dentro de UMA transação que é desfeita no final: não deixa nenhum dado.
+-- Uso remoto: colar no SQL Editor do Supabase (ou via MCP execute_sql).
+do $teste$
+declare
+  ustaff constant uuid := 'f9000000-0000-0000-0000-00000000000f';
+  ssid constant uuid := gen_random_uuid();
+  ua constant uuid := 'f9000000-0000-0000-0000-000000000001';
+  i_a uuid;
+  t text[] := '{}';
+  p text; n integer; total integer; nf integer;
+begin
+  execute $f$create function pg_temp.como(p_uid uuid, p_email text, p_session uuid) returns void language plpgsql as $b$
+    begin
+      perform set_config('request.jwt.claims',
+        json_build_object('sub', p_uid, 'role', 'authenticated', 'email', p_email, 'session_id', p_session)::text, true);
+      execute 'set local role authenticated';
+    end $b$
+  $f$;
+  execute $f$create function pg_temp.admin() returns void language plpgsql as $b$
+    begin
+      execute 'reset role';
+      perform set_config('request.jwt.claims', '', true);
+    end $b$
+  $f$;
+  execute $f$create function pg_temp.igual(p_atual text, p_esperado text, p_rotulo text) returns text language plpgsql as $b$
+    begin
+      if p_atual is not distinct from p_esperado then return null; end if;
+      return p_rotulo || ' -> esperado [' || coalesce(p_esperado, 'NULL') || '] obtido [' || coalesce(p_atual, 'NULL') || ']';
+    end $b$
+  $f$;
+  execute $f$create function pg_temp.falha(p_sql text, p_rotulo text, p_trecho text default null) returns text language plpgsql as $b$
+    declare v_msg text; v_hint text;
+    begin
+      execute p_sql;
+      return p_rotulo || ' -> deveria falhar e passou';
+    exception when others then
+      get stacked diagnostics v_hint = pg_exception_hint;
+      v_msg := sqlerrm;
+      if p_trecho is not null and v_msg not ilike ('%' || p_trecho || '%') and coalesce(v_hint, '') not ilike ('%' || p_trecho || '%') then
+        return p_rotulo || ' -> falhou com outro erro: ' || v_msg;
+      end if;
+      return null;
+    end $b$
+  $f$;
+
+  insert into auth.users (id, aud, role, email) values (ustaff, 'authenticated', 'authenticated', 'staff-elim@teste.local');
+  insert into interno.usuarios_internos (user_id, nome, email) values (ustaff, 'Comissão Eliminação Teste', 'staff-elim@teste.local');
+  insert into interno.sessoes_painel (session_id, user_id) values (ssid, ustaff);
+
+  insert into auth.users (id, aud, role, email) values (ua, 'authenticated', 'authenticated', 'elim-a@teste.local');
+  insert into publico.candidatos (user_id, nome, cpf, telefone, data_nascimento, nacionalidade)
+    values (ua, 'Eliminação Teste A', '11144477735', '62999990000', '1988-03-14', 'brasileiro_nato');
+  select i.id into i_a from publico.inscricoes i join publico.candidatos c on c.id = i.candidato_id where c.user_id = ua;
+  update publico.inscricoes set status = 'homologada', grupo = 'A', nivel = 'junior', submetida_em = now() where id = i_a;
+
+  perform pg_temp.como(ustaff, 'staff-elim@teste.local', ssid);
+
+  ---------------------------------------------------------------- validações
+  t := t || pg_temp.falha(format('select painel.eliminar_por_fraude(%L, ''indício curto'')', i_a), 'motivo curto', 'motivo_obrigatorio');
+  t := t || pg_temp.falha('select painel.eliminar_por_fraude(gen_random_uuid(), ''Diploma apresentado com instituição inexistente no e-MEC, confirmado por consulta oficial.'')',
+    'inscrição inexistente', 'nao_encontrada');
+
+  ---------------------------------------------------------------- eliminação
+  select (painel.eliminar_por_fraude(i_a, 'Diploma apresentado com instituição inexistente no e-MEC, confirmado por consulta oficial em 01/10/2026.')).status_anterior::text into p;
+  t := t || pg_temp.igual(p, 'homologada', 'guarda o status anterior (homologada) antes de cancelar');
+  perform pg_temp.admin();
+  select status::text into p from publico.inscricoes where id = i_a;
+  t := t || pg_temp.igual(p, 'cancelada', 'inscrição cancelada após a eliminação');
+  perform pg_temp.como(ustaff, 'staff-elim@teste.local', ssid);
+
+  t := t || pg_temp.falha(format('select painel.eliminar_por_fraude(%L, ''Segunda tentativa de eliminar a mesma inscrição, já cancelada.'')', i_a),
+    'eliminar de novo', 'ja_cancelada');
+
+  select motivo into p from painel.listar_eliminacoes() where inscricao_id = i_a;
+  t := t || pg_temp.igual((p like 'Diploma apresentado%')::text, 'true', 'listagem mostra o motivo da eliminação');
+
+  ---------------------------------------------------------------- reversão
+  t := t || pg_temp.falha(format('select painel.reverter_eliminacao(%L, ''curto'')', i_a), 'reverter sem motivo suficiente', 'motivo_obrigatorio');
+  t := t || pg_temp.falha('select painel.reverter_eliminacao(gen_random_uuid(), ''Não há indício de fraude após nova apuração da Comissão.'')',
+    'reverter inscrição sem eliminação ativa', 'nao_encontrada');
+
+  perform painel.reverter_eliminacao(i_a, 'Nova apuração confirmou que a instituição estava apenas temporariamente fora do cadastro do e-MEC.');
+  perform pg_temp.admin();
+  select status::text into p from publico.inscricoes where id = i_a;
+  t := t || pg_temp.igual(p, 'homologada', 'reversão restaura o status anterior exato (homologada)');
+  perform pg_temp.como(ustaff, 'staff-elim@teste.local', ssid);
+
+  t := t || pg_temp.falha(format('select painel.reverter_eliminacao(%L, ''Tentando reverter de novo, sem eliminação ativa.'')', i_a),
+    'reverter de novo (já revertida)', 'nao_encontrada');
+
+  select (revertido_em is not null)::text into p from painel.listar_eliminacoes() where inscricao_id = i_a;
+  t := t || pg_temp.igual(p, 'true', 'listagem mostra a reversão');
+
+  ---------------------------------------------------------------- acesso
+  perform pg_temp.como(ua, 'elim-a@teste.local', gen_random_uuid());
+  t := t || pg_temp.falha('select * from painel.listar_eliminacoes()', 'candidato lista eliminações', 'Acesso restrito');
+  t := t || pg_temp.falha(format('select painel.eliminar_por_fraude(%L, ''Candidato tentando se autoeliminar, o que não faz sentido.'')', i_a),
+    'candidato elimina a própria inscrição', 'Acesso restrito');
+  t := t || pg_temp.falha('select * from interno.eliminacoes', 'candidato lê a tabela direto', 'permission denied');
+
+  ---------------------------------------------------------------- auditoria
+  perform pg_temp.admin();
+  select count(*) into n from interno.auditoria where entidade = 'publico.inscricoes' and ator_id = ustaff
+    and acao in ('ELIMINAR_POR_FRAUDE', 'REVERTER_ELIMINACAO') and entidade_id = i_a::text;
+  t := t || pg_temp.igual(n::text, '2', 'a eliminação e a reversão ficam na auditoria (2)');
+
+  select count(*), count(x) into total, nf from unnest(t) x;
+  raise exception 'RESULTADO_DOS_TESTES: % verificações, % falhas%', total, nf,
+    case when nf > 0 then E'\n' || (select string_agg(x, E'\n') from unnest(t) x where x is not null) else ' — TODOS PASSARAM' end;
+end;
+$teste$;
