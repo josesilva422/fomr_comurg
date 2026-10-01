@@ -21,12 +21,6 @@ const ITENS = [
     ],
   },
   {
-    grupo: "Pré-análise",
-    links: [
-      { href: "/painel/revisao", rotulo: "Fila de revisão", dica: "Documento ao lado da extração por IA", ativo: (p: string) => p.startsWith("/painel/revisao") },
-    ],
-  },
-  {
     grupo: "Inscrições",
     links: [
       { href: "/painel/isencoes", rotulo: "Isenção da taxa", dica: "Analisar documentos e decidir", ativo: (p: string) => p.startsWith("/painel/isencoes") },
@@ -37,20 +31,11 @@ const ITENS = [
     ],
   },
   {
-    grupo: "Portal",
+    grupo: "Mais",
     links: [
+      { href: "/painel/revisao", rotulo: "Fila de revisão", dica: "Documento ao lado da extração por IA", ativo: (p: string) => p.startsWith("/painel/revisao") },
       { href: "/painel/publicacoes", rotulo: "Publicações e cronograma", dica: "Edital, comunicados e resultados na página inicial", ativo: (p: string) => p.startsWith("/painel/publicacoes") },
-    ],
-  },
-  {
-    grupo: "Acesso",
-    links: [
       { href: "/painel/usuarios", rotulo: "Usuários do painel", dica: "Quem acessa e quem avaliou", ativo: (p: string) => p.startsWith("/painel/usuarios") },
-    ],
-  },
-  {
-    grupo: "Relatórios",
-    links: [
       { href: "/painel/relatorios", rotulo: "Respostas do formulário", dica: "Baixar em Excel ou PDF", ativo: (p: string) => p.startsWith("/painel/relatorios") },
     ],
   },
