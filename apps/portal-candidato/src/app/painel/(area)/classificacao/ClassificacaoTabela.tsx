@@ -16,6 +16,7 @@ export function ClassificacaoTabela() {
   const router = useRouter();
   const [grupo, setGrupo] = useState<Grupo | "">("");
   const [nivel, setNivel] = useState<Nivel | "">("");
+  const [cota, setCota] = useState<"todos" | "pcd" | "racial">("todos");
   const chave = `${grupo}|${nivel}`;
   const [res, setRes] = useState<{ chave: string; linhas: LinhaClassificacao[]; erro: string } | null>(null);
   const [publicacoes, setPublicacoes] = useState<Record<string, PublicacaoFinal>>({});
@@ -45,7 +46,14 @@ export function ClassificacaoTabela() {
 
   const carregando = !res || res.chave !== chave;
   const erro = res && res.chave === chave ? res.erro : "";
-  const linhas = res && res.chave === chave && !res.erro ? res.linhas : null;
+  const todasLinhas = res && res.chave === chave && !res.erro ? res.linhas : null;
+  // Lista específica de classificação (itens 10.1 e 10.2): a mesma ordem do PF, só filtrada, com posição
+  // própria dentro do filtro (não a posição geral).
+  const linhas = todasLinhas
+    ? todasLinhas
+        .filter((l) => cota === "todos" || (cota === "pcd" ? l.cota_pcd : l.cota_racial))
+        .map((l, i) => ({ ...l, posicaoLista: cota === "todos" ? l.posicao : i + 1 }))
+    : null;
 
   return (
     <div>
@@ -66,7 +74,18 @@ export function ClassificacaoTabela() {
             </option>
           ))}
         </select>
+        <select value={cota} onChange={(e) => setCota(e.target.value as typeof cota)} aria-label="Lista específica">
+          <option value="todos">Todos os convocados</option>
+          <option value="pcd">Lista específica — PcD (item 10.1)</option>
+          <option value="racial">Lista específica — cota racial (item 10.2)</option>
+        </select>
       </div>
+      {cota !== "todos" ? (
+        <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>
+          Mesma ordem do PF, só com os candidatos {cota === "pcd" ? "PcD" : "autodeclarados negros"}; a posição aqui é dentro desta lista, não a geral. A
+          aplicação da reserva (ordem de convocação, alternância e proporcionalidade) é decisão da Comissão — o edital não fixa uma fórmula automática.
+        </p>
+      ) : null}
 
       {erro ? (
         <div className="alert alert-err">
@@ -97,9 +116,11 @@ export function ClassificacaoTabela() {
                   <td>
                     {GRUPOS[l.grupo].nome} · {NIVEIS[l.nivel].nome}
                   </td>
-                  <td>{l.posicao ? `${l.posicao}º` : "—"}</td>
+                  <td>{l.posicaoLista ? `${l.posicaoLista}º` : "—"}</td>
                   <td>
                     <strong>{l.nome}</strong>
+                    {l.cota_pcd ? <span className="pill pill-muted" style={{ marginLeft: 6 }}>PcD</span> : null}
+                    {l.cota_racial ? <span className="pill pill-muted" style={{ marginLeft: 6 }}>Cota racial</span> : null}
                     <br />
                     <small className="hint">{fmtCPF(l.cpf)}</small>
                   </td>

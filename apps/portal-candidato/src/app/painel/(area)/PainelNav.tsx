@@ -11,6 +11,7 @@ const ITENS = [
     links: [
       { href: "/painel", rotulo: "Análise curricular", dica: "Pontuação, habilitação e convocação", ativo: (p: string) => p === "/painel" || p.startsWith("/painel/candidato") },
       { href: "/painel/classificacao", rotulo: "Entrevista técnica — geral", dica: "Média (a partir de 3 fichas), PF e posição", ativo: (p: string) => p.startsWith("/painel/classificacao") },
+      { href: "/painel/heteroidentificacao", rotulo: "Heteroidentificação", dica: "Decisão motivada (item 10.4)", ativo: (p: string) => p.startsWith("/painel/heteroidentificacao") },
     ],
   },
   {

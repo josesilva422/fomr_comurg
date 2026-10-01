@@ -86,6 +86,9 @@ export interface LinhaClassificacao {
   posicao: number | null;
   /** Quantidade de vagas imediatas do Grupo/Nível (interno.vagas) — define o corte do cadastro de reserva. */
   vagas: number;
+  /** Itens 10.1 e 10.2: candidato concorre também pela lista específica de PcD / cota racial. */
+  cota_pcd: boolean;
+  cota_racial: boolean;
 }
 
 export const fmtNota = (v: number | null | undefined) =>
