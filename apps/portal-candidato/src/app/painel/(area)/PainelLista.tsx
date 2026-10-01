@@ -7,6 +7,7 @@ import { GRUPOS, NIVEIS } from "@/lib/requisitos";
 import type { Grupo, Nivel } from "@/lib/tipos";
 import type { AvaliacaoResumo } from "@/lib/pontuacao";
 import { ConviteEntrevista } from "./entrevista/ConviteEntrevista";
+import { PublicarResultado, type PublicacaoAC } from "./PublicarResultado";
 
 interface ResumoConvite {
   inscricao_id: string;
@@ -27,6 +28,8 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
   const [busca, setBusca] = useState("");
   const [convites, setConvites] = useState<Record<string, ResumoConvite>>({});
   const [versaoConvites, setVersaoConvites] = useState(0);
+  const [publicacoes, setPublicacoes] = useState<Record<string, { ac_preliminar: PublicacaoAC | null; ac_definitivo: PublicacaoAC | null }>>({});
+  const [versaoPublicacoes, setVersaoPublicacoes] = useState(0);
 
   useEffect(() => {
     createClient()
@@ -34,6 +37,20 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
       .rpc("convites_entrevista_resumo")
       .then(({ data }: { data: ResumoConvite[] | null }) => setConvites(Object.fromEntries((data ?? []).map((c) => [c.inscricao_id, c]))));
   }, [versaoConvites]);
+
+  useEffect(() => {
+    createClient()
+      .schema("painel")
+      .rpc("publicacoes_ac")
+      .then(({ data }: { data: (PublicacaoAC & { inscricao_id: string })[] | null }) => {
+        const porInscricao: Record<string, { ac_preliminar: PublicacaoAC | null; ac_definitivo: PublicacaoAC | null }> = {};
+        for (const r of data ?? []) {
+          porInscricao[r.inscricao_id] ??= { ac_preliminar: null, ac_definitivo: null };
+          porInscricao[r.inscricao_id][r.etapa] = r;
+        }
+        setPublicacoes(porInscricao);
+      });
+  }, [versaoPublicacoes]);
 
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -113,6 +130,7 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
                 <th style={{ textAlign: "right" }}>Experiência</th>
                 <th style={{ textAlign: "right" }}>Total</th>
                 <th>Convocação</th>
+                <th>Publicação ao candidato</th>
               </tr>
             </thead>
             <tbody>
@@ -163,6 +181,23 @@ export function PainelLista({ avaliacoes }: { avaliacoes: AvaliacaoResumo[] }) {
                     ) : a.habilitado ? (
                       <span className="pill pill-muted">Abaixo de 35 pts</span>
                     ) : null}
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {a.status === "homologada" ? (
+                      <div style={{ display: "grid", gap: 6, justifyItems: "start" }}>
+                        {publicacoes[a.inscricao_id]?.ac_preliminar ? <small className="hint">Preliminar publicado</small> : null}
+                        {publicacoes[a.inscricao_id]?.ac_definitivo ? <small className="hint">Definitivo publicado</small> : null}
+                        <PublicarResultado
+                          inscricaoId={a.inscricao_id}
+                          nome={a.nome}
+                          preliminar={publicacoes[a.inscricao_id]?.ac_preliminar ?? null}
+                          definitivo={publicacoes[a.inscricao_id]?.ac_definitivo ?? null}
+                          aoPublicar={() => setVersaoPublicacoes((v) => v + 1)}
+                        />
+                      </div>
+                    ) : (
+                      <small className="hint">Homologue a inscrição primeiro</small>
+                    )}
                   </td>
                 </tr>
               ))}

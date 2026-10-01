@@ -17,6 +17,7 @@ import { PassoVaga } from "./PassoVaga";
 import { MeuFormulario } from "./MeuFormulario";
 import { MeuConviteEntrevista, useMeuConvite } from "./MeuConviteEntrevista";
 import { EliminadoPorAusencia, useMinhaPresenca } from "./PresencaEntrevistaCandidato";
+import { ResultadoAC, useMeusResultados } from "./ResultadoAC";
 import { ResultadoIsencao, situacaoIsencao, useMinhaIsencao } from "./ResultadoIsencao";
 
 const PASSOS = [
@@ -229,6 +230,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
   const presenca = useMinhaPresenca(convocado);
   const eliminadoAusencia = convocado && presenca?.situacao === "nao_compareceu";
   const avaliacaoFinalizada = convocado && presenca?.situacao === "realizada" && presenca.finalizada;
+  const resultadosAC = useMeusResultados(inscricao.status === "homologada");
   const situacao = eliminadoAusencia
     ? "Não compareceu à entrevista técnica"
     : avaliacaoFinalizada
@@ -289,6 +291,7 @@ function Enviada({ inscricao, candidato }: { inscricao: Inscricao; candidato: Ca
           </p>
         </section>
       ) : null}
+      {inscricao.status === "homologada" ? <ResultadoAC resultados={resultadosAC} /> : null}
       {verConvite ? <MeuConviteEntrevista convite={convite} /> : null}
       {eliminadoAusencia ? <EliminadoPorAusencia /> : null}
       {noFluxoIsencao ? <ResultadoIsencao inscricaoId={inscricao.id} isencao={isencao} /> : null}
