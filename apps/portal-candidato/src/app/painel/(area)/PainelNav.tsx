@@ -21,6 +21,12 @@ const ITENS = [
     ],
   },
   {
+    grupo: "Pré-análise",
+    links: [
+      { href: "/painel/revisao", rotulo: "Fila de revisão", dica: "Documento ao lado da extração por IA", ativo: (p: string) => p.startsWith("/painel/revisao") },
+    ],
+  },
+  {
     grupo: "Inscrições",
     links: [
       { href: "/painel/isencoes", rotulo: "Isenção da taxa", dica: "Analisar documentos e decidir", ativo: (p: string) => p.startsWith("/painel/isencoes") },
